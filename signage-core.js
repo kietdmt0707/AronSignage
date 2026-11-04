@@ -2,7 +2,7 @@
    ARON Signage v2 – Lõi dùng chung cho player.html và admin.html
    (hiển thị slide, lịch ICS, thời tiết, KPI, âm thanh khẩn cấp, bộ nhớ offline)
    ===================================================================== */
-const APP_VERSION='2.1.0';
+const APP_VERSION='2.1.1';
 // Thông tin kết nối lấy từ config.js (mỗi môi trường/project Supabase một file riêng)
 const CFG=window.SIGNAGE_CONFIG||{};
 const SB_URL=String(CFG.url||'').replace(/\/+$/,'');
@@ -212,12 +212,12 @@ function htmlBase(s,tok){const im0=safeImg(s.img),im=im0?cachedURL(im0):'',bg=im
  if(s.type=='weather')return`<div class="sl ${ov}" ${bg||'style="background:var(--sA)"'}><div class="mid" style="font-weight:700">📍 ${esc(s.wname||s.wcity||'')}</div><div id="xbox_${tok}" style="width:100%"><div class="mid">Đang tải thời tiết...</div></div></div>`;
  if(s.type=='kpi')return`<div class="sl ${ov}" ${bg||'style="background:var(--sN)"'}><div class="mid" style="font-weight:800;margin-bottom:2vw">📊 ${esc(s.title||'Chỉ số KPI')}</div><div id="xbox_${tok}" style="width:100%;display:flex;flex-direction:column;align-items:center"><div class="mid">Đang tải...</div></div></div>`;
  if(s.type=='image')return im?`<div class="sl" style="padding:0;background:#000 url(${im}) center/${s.fit==='cover'?'cover':'contain'} no-repeat"></div>`:'<div class="sl"><div class="mid">Chưa có ảnh</div></div>';
- const y=s.type=='video'&&yt(s.vurl);if(y){const mP=s.sound?0:1;return`<div class="sl" style="background:#000;padding:0;overflow:hidden"><iframe id="yt_player" src="https://www.youtube.com/embed/${y}?enablejsapi=1&autoplay=1&mute=${mP}&controls=0&rel=0&playsinline=1&cc_load_policy=0&iv_load_policy=3&disablekb=1&fs=0&modestbranding=1" allow="autoplay; encrypted-media" style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;transform:scale(${s.ytcrop===false?1:1.16})"></iframe></div>`;}
+ const y=s.type=='video'&&yt(s.vurl);if(y){const mP=1;return`<div class="sl" style="background:#000;padding:0;overflow:hidden"><iframe id="yt_player" src="https://www.youtube.com/embed/${y}?enablejsapi=1&autoplay=1&mute=${mP}&controls=0&rel=0&playsinline=1&cc_load_policy=0&iv_load_policy=3&disablekb=1&fs=0&modestbranding=1" allow="autoplay; encrypted-media" style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;transform:scale(${s.ytcrop===false?1:1.16})"></iframe></div>`;}
  if(s.type=='text')return`<div class="sl ${ov}" ${bg||'style="background:var(--sA)"'}><div class="emo">📢</div><div class="big">${esc(s.title)}</div><div class="mid" style="white-space:pre-line">${esc(s.extra)}</div></div>`;
  if(s.type=='clock'){const d=NOW();return`<div class="sl ${ov}" ${bg||'style="background:var(--sN)"'}><div class="big" style="font-size:14vw">${d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</div><div class="mid">${d.toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div>`}
  if(s.type=='countdown'){return`<div class="sl ${ov}" ${bg||'style="background:var(--sN)"'}><div class="emo">⏳</div><div class="mid" style="font-size:3.5vw;font-weight:700">${esc(s.title)}</div><div id="cd_live_box" style="width:100%"></div><div class="mid" style="font-size:2.2vw">${esc(s.sub)}</div></div>`}
  if(s.type!=='video')return'<div class="sl"><div class="mid">⚠️ Loại nội dung này chưa được hỗ trợ</div><div class="sm2">Hãy tải lại trang để cập nhật ứng dụng</div></div>';
- const mutedAttr=s.sound?'':'muted';return`<div class="sl ${ov}" ${bg||'style="background:#000"'}><video id="v" autoplay ${mutedAttr} playsinline src="${esc(safeMedia(s.local||cachedURL(s.vurl)))}"></video></div>`}
+ const mutedAttr='muted';return`<div class="sl ${ov}" ${bg||'style="background:#000"'}><video id="v" autoplay ${mutedAttr} playsinline src="${esc(safeMedia(s.local||cachedURL(s.vurl)))}"></video></div>`}
 function startLiveCountdown(targetStr){
  if(cdInt)clearInterval(cdInt);
  const el=$('#cd_live_box');if(!el)return;
@@ -340,7 +340,7 @@ function html(s,tok){
 /* ================= TRÌNH PHÁT (dùng chung cho Tivi và xem trước) ================= */
 const PL={dirty:false,slides:[],settings:{},alert:null,preview:null,running:false,cur:0,tm:null,onNow:null,offline:false};
 function playerMarkup(){return`<div id="player" hidden><img id="player-logo" hidden alt=""><div id="emg" hidden></div><div id="ident" hidden></div>
- <div id="snd_hint" hidden>🔇 Chạm hoặc bấm vào màn hình 1 lần để bật âm thanh cảnh báo</div><div id="preview_tag" hidden>👁 XEM TRƯỚC · bấm Esc để thoát</div>
+ <div id="snd_hint" hidden>🔇 Chạm hoặc bấm vào màn hình 1 lần để bật âm thanh</div><div id="preview_tag" hidden>👁 XEM TRƯỚC · bấm Esc để thoát</div>
  <div id="net_tag" hidden>📴 Mất mạng – đang phát dữ liệu đã lưu</div>
  <div id="pg"></div><div id="body"><div id="stage"></div><div id="side"></div></div>
  <div id="bar"><span id="co"></span><span id="tk"><span></span></span><span id="clock"></span></div></div>`}
@@ -387,8 +387,15 @@ function plShow(){
  if(s.type==='video'){
   const v=$('#v');if(v){v.onended=v.onerror=()=>{if(tok===renderTok){PL.skipN=0;plShow()}}}
   const sec=(s.dur&&s.dur>0)?s.dur:(v?600:300);PL.tm=setTimeout(()=>{PL.skipN=0;plShow()},sec*1000);
-  if(window.YT&&window.YT.Player&&$('#yt_player')){
-   try{new YT.Player('yt_player',{events:{onReady:e=>{try{e.target.unloadModule('captions');e.target.unloadModule('cc')}catch(_){}},onStateChange:e=>{if(e.data===0&&tok===renderTok){PL.skipN=0;plShow()}},onError:e=>{console.warn('YouTube lỗi',e.data);setTimeout(()=>{if(tok===renderTok)plShow()},3000)}}})}catch(_){}
+  VSND.want=!!s.sound;VSND.yt=null;
+  if(v){v.muted=true;const pp=v.play();if(pp&&pp.catch)pp.catch(()=>{});trySound()}
+  if($('#yt_player')){
+   const bind=()=>{try{new YT.Player('yt_player',{events:{
+    onReady:e=>{if(tok!==renderTok)return;VSND.yt=e.target;try{e.target.mute();e.target.playVideo()}catch(_){}try{e.target.unloadModule('captions');e.target.unloadModule('cc')}catch(_){}trySound()},
+    onStateChange:e=>{if(tok!==renderTok)return;if(e.data===0){PL.skipN=0;plShow()}if(e.data===1)trySound()},
+    onError:e=>{console.warn('YouTube lỗi',e.data);setTimeout(()=>{if(tok===renderTok)plShow()},3000)}}})}catch(_){}};
+   // Thư viện YouTube có thể tải xong sau slide đầu tiên → chờ tối đa 10 giây
+   if(window.YT&&window.YT.Player)bind();else{let n=0;const iv=setInterval(()=>{if(tok!==renderTok||++n>50)return clearInterval(iv);if(window.YT&&window.YT.Player){clearInterval(iv);bind()}},200)}
   }
  }else{
   const secs=Math.max(1,+s.dur||10);
@@ -450,7 +457,14 @@ function plIdentify(title,sub){
 
 /* ===== Khẩn cấp: hiển thị + âm thanh ===== */
 var emgSoundAt=null,emgSoundTimer=null,emgSoundStart=0,emgNeedPlay=false;
-function unlockAudio(){const c=audioCtx();if(c&&c.state==='suspended')c.resume().then(()=>{updateSoundHint();if(emgNeedPlay)handleEmergencySound(true)}).catch(()=>{});updateSoundHint()}
+const VSND={want:false,yt:null};
+function trySound(){
+ if(!VSND.want||!PL.running)return;
+ if(!audioReady()&&!(navigator.userActivation&&navigator.userActivation.hasBeenActive))return;
+ try{if(VSND.yt&&VSND.yt.unMute){VSND.yt.unMute();VSND.yt.setVolume(100)}}catch(_){}
+ const v=$('#v');if(v&&v.muted){v.muted=false;const pp=v.play();if(pp&&pp.catch)pp.catch(()=>{v.muted=true;v.play().catch(()=>{})})}
+}
+function unlockAudio(){const c=audioCtx();if(c&&c.state==='suspended')c.resume().then(()=>{updateSoundHint();trySound();if(emgNeedPlay)handleEmergencySound(true)}).catch(()=>{});else trySound();updateSoundHint()}
 ['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
 function stopEmergencySound(keepKey){clearInterval(emgSoundTimer);emgSoundTimer=null;emgNeedPlay=false;if(!keepKey)emgSoundAt=null}
 function handleEmergencySound(retry){
