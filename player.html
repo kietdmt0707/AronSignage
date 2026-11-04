@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0930">
+<title>ARON Signage – Tivi</title>
+<link rel="stylesheet" href="signage.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js" integrity="sha256-LbKRLxaTmjshtHKYCnradGszpqQHCLxVXLC+JVxutbE=" crossorigin="anonymous"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="config.js"></script>
+<script src="signage-core.js"></script>
+<style>
+ html,body{background:#0a0930;overflow:hidden}
+ .full{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:4vw;background:var(--brand)}
+ .full[hidden]{display:none}
+ .pbrand{font-size:3.2vw;font-weight:900;letter-spacing:.1vw;text-shadow:0 .3vw 1.5vw rgba(10,20,90,.4)}.pbrand .script{color:var(--orange);font-size:3.8vw;margin-left:.6vw}
+ .pcard{margin-top:3vw;background:rgba(14,13,58,.72);border:1px solid rgba(255,255,255,.25);border-radius:2vw;padding:3vw 5vw;backdrop-filter:blur(8px);box-shadow:0 2vw 6vw rgba(0,0,0,.35)}
+ .plbl{font-size:1.6vw;letter-spacing:.4vw;opacity:.85;text-transform:uppercase}
+ .pcode{font-size:11vw;font-weight:900;letter-spacing:2.5vw;margin-left:2.5vw;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums}
+ .psteps{margin-top:2vw;font-size:1.7vw;line-height:1.7;text-align:left;opacity:.95}.psteps b{color:var(--orange2)}
+ .pfoot{position:absolute;bottom:2vw;left:0;right:0;font-size:1.1vw;opacity:.7}
+ .pmsg{font-size:2.6vw;font-weight:700;margin-top:2vw}
+ #pause .pcard{min-width:40vw}
+ #pause button{font-size:1.6vw;padding:1vw 2.4vw;margin:.6vw;border-radius:1vw;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
+ #pause button.o{background:linear-gradient(135deg,var(--orange),var(--orange2));border-color:var(--orange)}
+ #pin_dlg{width:min(92vw,380px);border:1px solid var(--bd);border-radius:12px;padding:20px;text-align:center;background:#16154a;color:#fff}
+ #pin_dlg input{text-align:center;font-size:22px;letter-spacing:6px;margin:12px 0;background:#0c0b2c;color:#fff}
+ #pin_dlg button{margin:4px}
+ #fs_tip{position:fixed;top:1.5vw;left:50%;transform:translateX(-50%);z-index:45;background:rgba(0,0,0,.65);color:#fff;padding:.6vw 1.4vw;border-radius:2vw;font-size:1.2vw}
+ #fs_tip[hidden]{display:none}
+</style>
+</head><body>
+
+<!-- Màn ghép nối / thông báo trạng thái -->
+<div id="pair" class="full">
+ <div class="pbrand">ARON<span class="script">Signage</span></div>
+ <div class="pcard" id="pair_card">
+  <div class="plbl">Đang khởi động…</div>
+ </div>
+ <div class="pfoot" id="pair_foot"></div>
+</div>
+
+<!-- Menu khi tạm dừng phát -->
+<div id="pause" class="full" hidden>
+ <div class="pbrand">ARON<span class="script">Signage</span></div>
+ <div class="pcard">
+  <div class="plbl">Đã tạm dừng phát</div>
+  <div class="pmsg" id="pause_name"></div>
+  <div class="hint" style="color:#cfd8f5;font-size:1.3vw;margin:.6vw 0 1.4vw" id="pause_info"></div>
+  <button class="o" onclick="resume()">▶ Tiếp tục phát</button>
+  <button onclick="goFull()">⛶ Toàn màn hình</button>
+  <button onclick="unpairLocal()">🔗 Ghép nối lại máy này</button>
+  <div class="hint" style="color:#cfd8f5;font-size:1.1vw;margin-top:1.2vw">Tự phát lại sau 5 phút nếu không thao tác.</div>
+ </div>
+</div>
+
+<dialog id="pin_dlg">
+ <h3 style="margin:0 0 6px">🔒 Màn hình đang bị khóa</h3>
+ <div class="hint" style="color:#cfd8f5">Nhập Mã PIN quản trị để tạm dừng phát</div>
+ <input id="pin_in" type="password" inputmode="numeric" autocomplete="off" placeholder="Mã PIN">
+ <div><button class="p" onclick="checkPin()">Xác nhận</button><button onclick="$('#pin_dlg').close()">Hủy</button></div>
+ <div id="pin_err" style="color:#ff8080;font-size:13px;min-height:18px;margin-top:6px"></div>
+</dialog>
+<div id="fs_tip" hidden>Bấm 1 lần vào màn hình để vào chế độ toàn màn hình · Bấm đúp hoặc Esc để mở menu</div>
+
+<script>
+document.body.insertAdjacentHTML('beforeend',playerMarkup());
+
+/* ===== Mã thiết bị (bí mật, chỉ lưu trên Tivi này) ===== */
+const TK_KEY='sig_screen_token';
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+function newToken(){const a=new Uint8Array(32);crypto.getRandomValues(a);return [...a].map(b=>b.toString(16).padStart(2,'0')).join('')}
+let token=lsGet(TK_KEY);if(!token||token.length<32){token=newToken();lsSet(TK_KEY,token)}
+
+const sb=SB_READY&&window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}}):null;
+const startedAt=Date.now();
+let man=null,rev=null,paused=false,pauseTimer=null,nowPlaying=null,pinging=false,lastOk=0;
+
+async function rpc(fn,args){if(!sb)throw new Error('Chưa tải được thư viện kết nối');const {data,error}=await sb.rpc(fn,args);if(error)throw error;return data}
+const adminURL=()=>location.href.replace(/player\.html.*$/,'admin.html');
+
+/* ===== Màn ghép nối ===== */
+function showPair(html,foot){$('#pair_card').innerHTML=html;$('#pair_foot').textContent=foot||`Thiết bị: ${screen.width}×${screen.height} · v${APP_VERSION}`;$('#pair').hidden=false}
+function showCode(code){
+ showPair(`<div class="plbl">Mã ghép nối Tivi</div><div class="pcode">${esc(code||'------')}</div>
+  <div class="psteps">1. Mở trang quản trị: <b>${esc(adminURL())}</b><br>2. Bấm <b>➕ Ghép nối Tivi</b><br>3. Nhập mã ở trên, đặt tên và chọn nhóm cho màn hình này</div>`,
+  `Mã tự đổi sau 30 phút · Màn hình sẽ tự bắt đầu phát ngay khi ghép nối xong · v${APP_VERSION}`);
+}
+const hidePair=()=>{$('#pair').hidden=true};
+
+/* ===== Đồng bộ với máy chủ ===== */
+function info(){return{v:APP_VERSION,res:`${screen.width}x${screen.height}`,vp:`${innerWidth}x${innerHeight}`,ua:navigator.userAgent.slice(0,160),
+ now:nowPlaying,paused,alert:alertActive(),up:Math.round((Date.now()-startedAt)/6e4),cache:mediaURL.size}}
+PL.onNow=s=>{nowPlaying=s?{id:s.id||null,type:s.type,t:String(s.title||s.wname||LBL[s.type]||'').slice(0,80)}:null};
+
+async function ping(){
+ if(pinging)return;pinging=true;
+ try{
+  let r=await rpc('screen_ping',{p_token:token,p_info:info()});
+  if(r.now)syncClock(r.now);
+  if(r.status==='unknown')r=await rpc('screen_register',{p_token:token});
+  lastOk=Date.now();setOffline(false);
+  if(r.status==='pending'){man=null;rev=null;IDB.del('kv','manifest').catch(()=>{});plStop();$('#pause').hidden=true;showCode(r.code);return}
+  if(r.status==='disabled'){plStop();showPair('<div class="plbl">Màn hình đang tạm ngưng</div><div class="pmsg">Admin đã tạm ngưng phát trên màn hình này</div>');return}
+  if(r.status==='active'){
+   if(!man||r.rev!==rev)await loadManifest();
+   for(const c of r.cmds||[])runCmd(c.cmd);
+  }
+ }catch(e){
+  console.warn('Không kết nối được máy chủ:',e&&e.message);
+  setOffline(true);
+  if(!man)showPair('<div class="plbl">Chưa kết nối được máy chủ</div><div class="pmsg">Đang thử lại…</div>',`${netErr(e,SB_URL.replace('https://',''))} · v${APP_VERSION}`);
+ }finally{pinging=false}
+}
+async function loadManifest(){
+ const m=await rpc('screen_manifest',{p_token:token});
+ if(m.status!=='active'){rev=null;return}
+ IDB.set('kv','manifest',m).catch(()=>{});
+ applyManifest(m);
+}
+function applyManifest(m){
+ man=m;rev=m.rev;if(m.now)syncClock(m.now);
+ document.title=`${m.screen.name} – ARON Signage`;
+ hidePair();
+ plSetData({slides:m.slides||[],settings:m.settings||{},alert:m.alert||null});
+ if(!PL.running&&!paused)plStart();
+ precacheList(m.slides,[m.settings&&m.settings.logo],navigator.onLine).then(()=>{if(PL.running)applyChrome()});
+}
+function setOffline(v){if(PL.offline!==v){PL.offline=v;if(PL.running)applyChrome()}}
+
+/* ===== Lệnh từ xa ===== */
+function runCmd(c){
+ if(c==='reload')return setTimeout(()=>location.reload(),300);
+ if(c==='next')return plNext();
+ if(c==='identify'&&man){const s=man.screen;if(paused){$('#pause_info').textContent='🔆 Admin đang nhận diện màn hình này';return}plIdentify(s.name,[s.group,s.location].filter(Boolean).join(' · ')||'ARON Signage')}
+}
+
+/* ===== Tạm dừng / thoát (có khóa PIN) ===== */
+function requestExit(){
+ if(!PL.running)return;
+ if(man&&man.settings&&man.settings.pin_lock){$('#pin_in').value='';$('#pin_err').textContent='';$('#pin_dlg').showModal();setTimeout(()=>$('#pin_in').focus(),50);return}
+ pause();
+}
+async function checkPin(){
+ const p=$('#pin_in').value.trim();if(!p)return;
+ try{const ok=await rpc('screen_verify_pin',{p_token:token,p});if(!ok){$('#pin_err').textContent='Mã PIN không đúng';return}}
+ catch(e){$('#pin_err').textContent=e.message||'Không kiểm tra được PIN (cần có mạng)';return}
+ $('#pin_dlg').close();pause();
+}
+$('#pin_in').addEventListener('keydown',e=>{if(e.key==='Enter')checkPin()});
+function pause(){
+ plStop();paused=true;
+ $('#pause_name').textContent=man?man.screen.name:'';$('#pause_info').textContent=man?[man.screen.group,man.screen.location].filter(Boolean).join(' · '):'';
+ $('#pause').hidden=false;clearTimeout(pauseTimer);pauseTimer=setTimeout(resume,5*60e3);
+}
+function resume(){clearTimeout(pauseTimer);paused=false;$('#pause').hidden=true;if(man){plStart();goFull()}}
+function goFull(){try{const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();r&&r.catch&&r.catch(()=>{})}catch(_){}}
+function unpairLocal(){
+ if(!confirm('Ghép nối lại máy này? Màn hình sẽ hiện mã mới và Admin cần nhập lại mã.'))return;
+ lsSet(TK_KEY,null);IDB.del('kv','manifest').catch(()=>{}).finally(()=>location.reload());
+}
+addEventListener('keydown',e=>{if(e.key==='Escape'||e.key==='Backspace'||e.key==='GoBack'){if(PL.running){e.preventDefault();requestExit()}}});
+document.addEventListener('dblclick',()=>{if(PL.running)requestExit()});
+document.addEventListener('click',()=>{if(!document.fullscreenElement&&PL.running)goFull()});
+document.addEventListener('fullscreenchange',()=>{$('#fs_tip').hidden=!!document.fullscreenElement||!PL.running});
+$('#snd_hint').addEventListener('click',unlockAudio);
+
+/* ===== Khởi động ===== */
+(async()=>{
+ // Có bản lưu → phát ngay (kể cả khi mất mạng), rồi mới hỏi máy chủ
+ try{const c=await IDB.get('kv','manifest');if(c&&c.status==='active'){precacheList(c.slides,[c.settings&&c.settings.logo],false).finally(()=>{if(!man)applyManifest(c)})}}catch(_){}
+ if(!SB_READY){showPair('<div class="plbl">Chưa cấu hình</div><div class="pmsg">Điền url và key Supabase vào file config.js</div>');return}
+ await ping();
+ setInterval(ping,20000);
+ setTimeout(()=>{$('#fs_tip').hidden=!!document.fullscreenElement||!PL.running;setTimeout(()=>$('#fs_tip').hidden=true,12000)},1500);
+ // Nhận tín hiệu "có thay đổi" tức thì (vài byte) → hỏi lại máy chủ, rải đều để không dồn tải
+ if(sb){try{sb.channel(BUMP_CHANNEL).on('broadcast',{event:'bump'},()=>setTimeout(ping,300+Math.random()*2500)).subscribe()}catch(e){console.warn('Realtime:',e)}}
+})();
+addEventListener('online',()=>{if(!window.supabase)location.reload();else ping()});
+addEventListener('offline',()=>setOffline(true));
+// Tải lại mỗi đêm (3h sáng) để giải phóng bộ nhớ trên Tivi chạy liên tục
+setInterval(()=>{const h=NOW().getHours();if(h===3&&Date.now()-startedAt>2*3600e3&&navigator.onLine&&Date.now()-lastOk<120e3)location.reload()},60e3);
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body></html>

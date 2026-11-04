@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#211f6b">
+<title>ARON Signage – Quản trị</title>
+<link rel="stylesheet" href="signage.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js" integrity="sha256-LbKRLxaTmjshtHKYCnradGszpqQHCLxVXLC+JVxutbE=" crossorigin="anonymous"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="config.js"></script>
+<script src="signage-core.js"></script>
+<style>
+ .wrap{max-width:1280px}
+ .tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--bd);padding-bottom:0}
+ .tabs button{border:0;border-bottom:3px solid transparent;border-radius:8px 8px 0 0;background:transparent;padding:10px 16px;font-weight:600;color:var(--mu);margin-bottom:-2px}
+ .tabs button.on{color:var(--fg);border-bottom-color:var(--orange);background:var(--card)}
+ .tabs .cnt{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--bg);border:1px solid var(--bd);font-size:12px;margin-left:4px}
+ .pane[hidden]{display:none}
+ .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+ .stat{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}.stat b{display:block;font-size:26px;line-height:1.1}.stat span{font-size:13px;color:var(--mu)}
+ .stat.g b{color:#1a9e5a}.stat.r b{color:#d92d20}.stat.y b{color:#c98a00}
+ .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+ .chip{border-radius:20px;padding:4px 12px;font-size:13px}.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+ .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+ .scr{background:var(--card);border:1px solid var(--bd);border-left:5px solid #9aa6c8;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+ .scr.on{border-left-color:#1a9e5a}.scr.off{border-left-color:#d92d20}.scr.pa{border-left-color:#c98a00}.scr.dis{opacity:.6}.scr.em{border-left-color:#b00020;box-shadow:0 0 0 2px rgba(176,0,32,.25)}
+ .scr-h{display:flex;gap:8px;align-items:center;min-width:0}.scr-h b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px}
+ .dot{width:10px;height:10px;border-radius:50%;background:#9aa6c8;flex:0 0 auto}.on .dot{background:#1a9e5a;box-shadow:0 0 0 4px rgba(26,158,90,.18)}.off .dot{background:#d92d20}.pa .dot{background:#c98a00}
+ .scr-now{font-size:13px;background:var(--bg);border-radius:8px;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .scr .row{gap:6px;margin-top:6px}
+ .tgt{font-size:11px;background:rgba(31,79,209,.08);color:var(--blue);border-color:rgba(31,79,209,.25)}
+ .tgt.warn{background:#fde2e1;color:#b42318;border-color:#f5b5b0}
+ .pick{max-height:180px;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;margin-top:6px}
+ .pick label{display:flex;align-items:center;gap:6px;margin:3px 0;color:var(--fg);font-size:14px;cursor:pointer}.pick input{width:auto}
+ .pick h5{margin:6px 0 2px;font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px}
+ .radio{display:flex;gap:16px;flex-wrap:wrap}.radio label{display:inline-flex;align-items:center;gap:6px;margin:4px 0;color:var(--fg);font-size:14px;cursor:pointer}.radio input{width:auto}
+ dialog.card{width:94%;max-width:520px;border:1px solid var(--bd);border-radius:12px;padding:20px;background:var(--card);color:var(--fg)}
+ .dh-row{display:flex;align-items:center;margin-bottom:10px}.dh-row h2{margin:0;flex:1}
+ .empty{padding:24px;text-align:center;color:var(--mu);border:1px dashed var(--bd);border-radius:12px}
+ .al{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px}
+ .al .t{flex:1;min-width:0}.lv{width:10px;height:36px;border-radius:4px}.lv.red{background:#b00020}.lv.orange{background:#c45500}.lv.blue{background:#0b5394}
+ #err_bar{background:#fde2e1;color:#b42318;border:1px solid #f5b5b0}
+ .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.toolbar select,.toolbar input{width:auto;flex:1 1 180px}
+ .code-in{font-size:30px;letter-spacing:10px;text-align:center;font-weight:800}
+</style>
+</head><body>
+
+<div class="wrap" id="main_wrap" hidden>
+ <header class="hero"><div class="hero-l"><div class="hero-logo" id="hero_logo_box" hidden><img id="hero_logo" alt="Logo"></div><div><h1>Quản lý màn hình nội bộ</h1><span class="ribbon">ARON SIGNAGE v2</span></div></div><div class="hero-r">
+  <div class="hero-top">
+   <span id="cloud_badge" class="tag" style="font-size:12px;cursor:pointer" onclick="loadAll()" title="Bấm để tải lại">☁️ Đang kết nối...</span>
+   <div class="umenu" id="umenu">
+    <button type="button" class="uchip" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false"><span id="user_badge"></span><span class="caret">▾</span></button>
+    <div class="umenu-list" id="umenu_list" hidden>
+     <button type="button" id="btn_users" onclick="closeUserMenu();openUserModal()">👥 User &amp; Phân quyền</button>
+     <button type="button" onclick="closeUserMenu();openChangePassModal()">🔑 Đổi mật khẩu</button>
+     <button type="button" onclick="closeUserMenu();window.open('player.html','_blank')">📺 Mở trang Tivi (player)</button>
+     <hr>
+     <button type="button" class="danger" onclick="closeUserMenu();logout()">🚪 Đăng xuất</button>
+    </div>
+   </div>
+  </div>
+  <div class="hero-act">
+   <button id="btn_em" class="em" onclick="openEmergency()">🚨 Khẩn cấp</button>
+   <button id="btn_pair" onclick="openPair()">➕ Ghép nối Tivi</button>
+   <button id="btn_media" onclick="openMedia('all')">📚 Thư viện</button>
+   <button class="o" onclick="previewScope()">▶ Xem trước</button>
+  </div>
+ </div></header>
+
+ <div id="err_bar" class="banner" hidden></div>
+ <div id="em_bar" class="banner" style="display:none;flex-wrap:wrap"></div>
+
+ <nav class="tabs" id="tabs">
+  <button data-tab="screens" class="on">📺 Màn hình <span class="cnt" id="cnt_screens">0</span></button>
+  <button data-tab="content">🗂 Nội dung <span class="cnt" id="cnt_slides">0</span></button>
+  <button data-tab="alerts">🚨 Khẩn cấp</button>
+  <button data-tab="settings" id="tab_settings">⚙️ Cài đặt chung</button>
+ </nav>
+
+ <!-- ============ MÀN HÌNH ============ -->
+ <section class="pane" id="pane_screens">
+  <div class="stats" id="stats"></div>
+  <div class="row" style="margin:14px 0 10px;justify-content:space-between">
+   <div class="chips" id="group_chips"></div>
+   <div class="row"><button class="sm" id="btn_groups" onclick="openGroups()">🗂 Quản lý nhóm</button><button class="sm" onclick="loadScreens()">🔄 Làm mới</button></div>
+  </div>
+  <div class="sgrid" id="screen_grid"></div>
+ </section>
+
+ <!-- ============ NỘI DUNG ============ -->
+ <section class="pane" id="pane_content" hidden>
+  <div class="grid">
+   <div class="card"><h2>Danh sách trình chiếu</h2>
+    <div id="pending_bar" class="banner" style="display:none"></div>
+    <div class="toolbar">
+     <select id="f_scope" onchange="renderSlides()"></select>
+     <input id="f_q" placeholder="🔍 Tìm theo tiêu đề..." oninput="renderSlides()">
+    </div>
+    <p class="hint" id="list_hint" style="margin:-4px 0 8px"></p>
+    <div id="list"></div><p class="hint" id="empty">Chưa có nội dung. Hãy thêm ở bên phải.</p>
+   </div>
+   <div class="card" id="add_card"><h2 id="ft">Thêm nội dung</h2>
+    <label>Loại</label><select id="type" onchange="fields()">
+     <option value="welcome">👋 Chào đón khách</option><option value="meeting">📅 Lịch họp hôm nay (nhập tay)</option>
+     <option value="event">🎉 Banner sự kiện</option><option value="video">🎬 Video</option><option value="image">🖼️ Ảnh (toàn màn hình)</option><option value="text">📢 Thông báo chữ</option><option value="countdown">⏳ Đếm ngược sự kiện</option><option value="clock">🕒 Đồng hồ &amp; ngày</option><option value="calendar">🗓️ Lịch họp tự động (Google/Outlook)</option><option value="room">🚪 Màn hình cửa phòng họp (Trống/Đang họp)</option><option value="weather">🌤️ Thời tiết</option><option value="kpi">📊 KPI / Chỉ số</option><option value="web">🌐 Trang web / Power BI / Google Slides</option></select>
+    <div id="kindbox"><label>Loại sự kiện</label><select id="kind"></select></div>
+    <div id="tbox"><label id="tl">Tiêu đề</label><input id="title"></div>
+    <div id="sbox"><label id="sl">Phụ đề</label><input id="sub"></div>
+    <div id="xbox"><label id="xl">Nội dung</label><textarea id="extra" rows="4"></textarea></div>
+    <div id="fitbox" style="display:none"><label>Cách hiển thị ảnh</label><select id="fit"><option value="contain">Vừa khung (thấy toàn bộ ảnh, có thể có viền đen)</option><option value="cover">Phủ kín màn hình (có thể cắt mép ảnh)</option></select></div>
+    <div id="ibox"><label id="il">Ảnh nền (tùy chọn)</label><div class="row" style="flex-wrap:nowrap"><input id="img" type="file" accept="image/*" style="flex:1"><button type="button" onclick="pickImg()">📚 Thư viện</button></div><div class="row" style="margin-top:4px"><span class="hint" id="imgst"></span><button type="button" class="sm" id="img_clear" style="display:none" onclick="imgData='';$('#imgst').textContent='';this.style.display='none'">Bỏ ảnh</button><label style="display:inline-flex;align-items:center;gap:4px;margin:0;cursor:pointer"><input type="checkbox" id="imgov" style="width:auto" checked> 🌙 Phủ lớp tối ảnh nền (giúp nổi bật chữ)</label></div></div>
+    <div id="vbox"><label>Link video (.mp4 hoặc link YouTube)</label><div class="row" style="flex-wrap:nowrap"><input id="vurl" placeholder="https://youtu.be/... hoặc https://.../video.mp4" style="flex:1"><button type="button" onclick="pickVid()">📚 Thư viện</button></div><label style="display:inline-flex;align-items:center;gap:6px;margin:6px 0;cursor:pointer;font-weight:bold"><input type="checkbox" id="vsound" style="width:auto"> 🔊 Bật âm thanh video (Tắt = tự phát ổn định, không bị chặn)</label><label style="display:inline-flex;align-items:center;gap:6px;margin:6px 0;cursor:pointer"><input type="checkbox" id="ytcrop" style="width:auto" checked> ✂️ YouTube: phóng to ~16% để ẩn tên kênh, logo và phụ đề</label><label>Hoặc tải file video lên thư viện (MP4/WebM, tối đa 50 MB)</label><input id="vfile" type="file" accept="video/mp4,video/webm"><span class="hint">Video MP4 được lưu sẵn trên Tivi để phát cả khi mất mạng. YouTube cần có mạng.</span></div>
+    <div id="webbox"><label>Link trang web (https://)</label><input id="wurl" placeholder="https://app.powerbi.com/view?r=... hoặc https://docs.google.com/presentation/d/e/.../embed"><div class="grid" style="gap:10px"><div><label>Thu phóng (%)</label><input id="zoom" type="number" min="25" max="300" value="100"></div><div></div></div><span class="hint">Dùng link "Nhúng/Embed" hoặc "Publish to web". Một số trang chặn nhúng (hiện trang trắng) – khi đó không hiển thị được. Cần có mạng.</span></div>
+    <div class="grid" style="gap:10px"><div><label id="durlbl">Thời gian hiển thị (giây)</label><input id="dur" type="number" min="0" value="10"></div>
+     <div><label>Hiển thị từ ngày</label><input id="from" type="date"></div></div>
+    <label>Đến hết ngày (để trống = luôn hiện)</label><input id="to" type="date">
+    <label>Chỉ hiện vào các thứ</label><div class="row" id="days"></div>
+    <div class="grid" style="gap:10px"><div><label>Từ giờ</label><input id="t1" type="time"></div><div><label>Đến giờ</label><input id="t2" type="time"></div></div>
+    <div id="cbox"><label>Thời điểm diễn ra (cho Đếm ngược)</label><input id="target" type="datetime-local"></div>
+    <div id="calbox"><label>Link lịch ICS (Google Calendar / Outlook)</label><input id="icsurl" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"><span class="hint">Google Calendar: Cài đặt lịch → "Địa chỉ bí mật ở định dạng iCal". Outlook: Lịch → Lịch được chia sẻ → Xuất bản lịch → link ICS. Link được cất riêng, Tivi không xem được; màn hình chỉ hiện giờ, tiêu đề, phòng.</span></div>
+    <div id="wbox"><label>Thành phố</label><input id="wcity" placeholder="VD: Hồ Chí Minh, Hà Nội, Đà Nẵng"></div>
+    <div id="kpibox"><label>Hoặc lấy tự động từ Google Sheet (CSV)</label><input id="kpiurl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"><span class="hint">Google Sheet → Tệp → Chia sẻ → Xuất bản lên web → CSV. Các cột: Tên | Giá trị | Mục tiêu | Đơn vị. Tự cập nhật mỗi 10 phút.</span></div>
+
+    <h3 style="margin:16px 0 4px">📺 Phát ở đâu?</h3>
+    <div class="radio"><label><input type="radio" name="tmode" value="all" checked onchange="tgtMode()"> 🌐 Tất cả màn hình</label><label><input type="radio" name="tmode" value="some" onchange="tgtMode()"> 🎯 Chọn nhóm / màn hình</label></div>
+    <div id="tgt_pick" class="pick" hidden></div>
+
+    <div class="row" style="margin-top:14px"><button class="p" id="save_btn" onclick="save()">Lưu</button><button onclick="previewForm()">👁 Xem trước</button><button onclick="reset()">Làm mới form</button></div>
+   </div>
+  </div>
+ </section>
+
+ <!-- ============ KHẨN CẤP ============ -->
+ <section class="pane" id="pane_alerts" hidden>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Lịch sử thông báo khẩn cấp</h2><button class="sm" id="btn_em2" onclick="openEmergency()" style="background:#b00020;color:#fff;border-color:#b00020">🚨 Phát thông báo mới</button></div>
+   <div id="alert_list" style="margin-top:10px"></div></div>
+ </section>
+
+ <!-- ============ CÀI ĐẶT ============ -->
+ <section class="pane" id="pane_settings" hidden>
+  <div class="grid">
+   <div class="card"><h2>Cài đặt chung (áp dụng cho mọi màn hình)</h2>
+    <label>Tên công ty (hiện góc dưới)</label><input id="co_in">
+    <label>Logo công ty (hiện góc màn hình)</label><input id="logo_in" type="file" accept="image/*"><div class="row" style="margin-top:4px"><span class="hint" id="logost"></span><button id="del_logo" class="sm" style="display:none" onclick="setLogo('')">Xóa logo</button></div>
+    <label>Dòng chữ chạy mặc định</label><input id="tk_in">
+    <label>Bố cục mặc định</label><select id="lay"><option value="full">Toàn màn hình (1 vùng)</option><option value="side">Chia vùng: nội dung chính (70%) + cột bên phải (30%)</option></select>
+    <label>Ghi chú ở cột bên phải</label><input id="sidenote" placeholder="VD: Wifi khách: Guest / 12345678">
+    <p class="hint">Từng màn hình có thể ghi đè dòng chữ chạy, bố cục, ghi chú riêng (tab Màn hình → ✏️ Sửa).</p>
+    <button class="p" onclick="saveSettings()">💾 Lưu cài đặt</button>
+   </div>
+   <div class="card"><h2>🔒 Khóa Tivi bằng Mã PIN</h2>
+    <label style="display:flex;align-items:center;gap:8px;margin:10px 0;cursor:pointer;font-weight:bold;color:var(--fg)"><input type="checkbox" id="pin_lock" style="width:auto" onchange="togglePinLock(this.checked)"> Yêu cầu PIN khi thoát/tạm dừng trên Tivi</label>
+    <div class="row"><input id="master_pin_in" type="password" placeholder="Mã PIN mới (tối thiểu 6 ký tự)" style="flex:1" autocomplete="new-password"><button type="button" onclick="changePin()">Lưu PIN</button></div>
+    <p class="hint">Mỗi Tivi chỉ được nhập sai 5 lần / 10 phút (tính riêng từng Tivi). Để khóa chắc chắn, chạy trình duyệt Tivi ở chế độ kiosk (xem HUONG-DAN-V2.md).</p>
+   </div>
+  </div>
+ </section>
+</div>
+
+<!-- ============ ĐĂNG NHẬP ============ -->
+<div id="login_overlay" class="brand-stage" style="position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:20px">
+ <div class="card login-card" style="width:100%;max-width:400px">
+  <form id="login_box" autocomplete="on" onsubmit="event.preventDefault();login()">
+   <div class="login-brand"><span class="lb" id="login_lb" hidden><img id="login_logo" alt="Logo"></span><div class="lt"><span id="login_word">ARON</span><span class="script">Signage</span></div><div class="hint" style="margin-top:2px">Đăng nhập để quản lý màn hình &amp; nội dung</div></div>
+   <label for="l_u">Email</label><input id="l_u" name="email" type="email" placeholder="email@congty.com" autocomplete="username" required>
+   <label for="l_p" style="margin-top:10px">Mật khẩu</label>
+   <div style="position:relative"><input id="l_p" name="password" type="password" placeholder="Mật khẩu" autocomplete="current-password" required style="padding-right:42px"><button type="button" id="l_eye" onclick="togglePwVisible()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;padding:4px 8px">👁️</button></div>
+   <label style="display:flex;align-items:center;gap:8px;margin:12px 0 0;cursor:pointer;color:var(--fg)"><input type="checkbox" id="l_remember" style="width:auto" checked> Ghi nhớ đăng nhập trên máy này</label>
+   <div style="margin-top:18px;display:flex;gap:10px"><button type="submit" id="l_btn" class="p" style="flex:1">Đăng nhập</button><a href="player.html" style="text-decoration:none"><button type="button" style="background:#222;color:#fff;border-color:#444">📺 Đây là Tivi</button></a></div>
+   <p id="l_err" style="color:#ff4d4f;font-size:13px;margin-top:12px;text-align:center;display:none"></p>
+  </form>
+ </div>
+</div>
+
+<!-- ============ HỘP THOẠI ============ -->
+<dialog id="pair_dlg" class="card">
+ <div class="dh-row"><h2>➕ Ghép nối Tivi mới</h2><button class="sm" onclick="$('#pair_dlg').close()">✕</button></div>
+ <p class="hint">Trên Tivi, mở <b id="pair_url"></b> → màn hình hiện mã 6 số. Nhập mã đó vào đây.</p>
+ <label>Mã trên Tivi</label><input id="pc_code" class="code-in" maxlength="6" inputmode="numeric" placeholder="000000" autocomplete="off">
+ <label>Tên màn hình</label><input id="pc_name" placeholder="VD: Tivi sảnh lễ tân">
+ <label>Vị trí</label><input id="pc_loc" placeholder="VD: Tầng 1 – Sảnh chính">
+ <label>Nhóm</label><select id="pc_group"></select>
+ <button class="p" style="margin-top:14px;width:100%" onclick="claimScreen()">Ghép nối</button>
+</dialog>
+
+<dialog id="scr_dlg" class="card">
+ <div class="dh-row"><h2>✏️ Sửa màn hình</h2><button class="sm" onclick="$('#scr_dlg').close()">✕</button></div>
+ <input type="hidden" id="sd_id">
+ <div class="grid" style="gap:10px"><div><label>Tên màn hình</label><input id="sd_name"></div><div><label>Vị trí</label><input id="sd_loc"></div></div>
+ <div class="grid" style="gap:10px"><div><label>Nhóm</label><select id="sd_group"></select></div><div><label>Trạng thái</label><select id="sd_status"><option value="active">✅ Đang hoạt động</option><option value="disabled">⏸ Tạm ngưng phát</option></select></div></div>
+ <h3 style="margin:14px 0 0">Ghi đè riêng cho màn này <span class="hint">(để trống = dùng cài đặt chung)</span></h3>
+ <label>Dòng chữ chạy</label><input id="sd_ticker">
+ <div class="grid" style="gap:10px"><div><label>Bố cục</label><select id="sd_lay"><option value="">— Theo cài đặt chung —</option><option value="full">Toàn màn hình</option><option value="side">Chia vùng 70/30</option></select></div><div><label>Ghi chú cột phải</label><input id="sd_side"></div></div>
+ <div class="hint" id="sd_info" style="margin-top:10px"></div>
+ <div class="row" style="margin-top:14px"><button class="p" onclick="saveScreen()">Lưu</button><span style="flex:1"></span><button style="color:#d92d20" onclick="deleteScreen()">🗑 Gỡ màn hình</button></div>
+</dialog>
+
+<dialog id="grp_dlg" class="card">
+ <div class="dh-row"><h2>🗂 Nhóm màn hình</h2><button class="sm" onclick="$('#grp_dlg').close()">✕</button></div>
+ <p class="hint">Nhóm theo chi nhánh, tầng hoặc khu vực (VD: "HCM – Sảnh", "Kho Bình Dương", "Phòng họp"). Nội dung và thông báo khẩn cấp có thể nhắm tới từng nhóm.</p>
+ <div id="grp_list"></div>
+ <div class="row" style="margin-top:10px;flex-wrap:nowrap"><input id="grp_new" placeholder="Tên nhóm mới" style="flex:1"><button class="p" onclick="addGroup()">Thêm</button></div>
+</dialog>
+
+<dialog id="em_modal" class="card" style="border:2px solid #b00020">
+ <div class="dh-row"><h2 style="color:#b00020">🚨 Phát thông báo khẩn cấp</h2><button class="sm" onclick="$('#em_modal').close()">✕</button></div>
+ <p class="hint">Hiện ngay lập tức, phủ kín các màn hình được chọn cho tới khi tắt hoặc hết thời gian.</p>
+ <label>Tiêu đề</label><input id="em_title" placeholder="VD: SƠ TÁN KHẨN CẤP">
+ <label>Nội dung</label><textarea id="em_msg" rows="3" placeholder="VD: Vui lòng di chuyển theo lối thoát hiểm gần nhất"></textarea>
+ <div class="grid" style="gap:10px"><div><label>Mức độ</label><select id="em_lv"><option value="red">🔴 Khẩn cấp (đỏ, nhấp nháy)</option><option value="orange">🟠 Cảnh báo (cam)</option><option value="blue">🔵 Thông báo quan trọng (xanh)</option></select></div>
+  <div><label>Tự tắt sau (phút, 0 = tắt tay)</label><input id="em_min" type="number" min="0" value="0"></div></div>
+ <div class="grid" style="gap:10px"><div><label>Âm thanh</label><select id="em_snd"><option value="10">🔊 Lặp lại mỗi 10 giây</option><option value="30">🔊 Lặp lại mỗi 30 giây</option><option value="once">🔊 Chỉ phát 1 lần</option><option value="off">🔇 Không phát âm thanh</option></select></div>
+  <div><label>Âm lượng</label><div class="row" style="flex-wrap:nowrap"><select id="em_vol" style="flex:1"><option value="0.1">Nhỏ</option><option value="0.18" selected>Vừa</option><option value="0.3">Lớn</option></select><button type="button" onclick="testAlert()">▶ Nghe thử</button></div></div></div>
+ <label>Phát tới</label>
+ <div class="radio"><label><input type="radio" name="emode" value="all" checked onchange="emMode()"> 🌐 Tất cả màn hình</label><label><input type="radio" name="emode" value="some" onchange="emMode()"> 🎯 Chọn nhóm / màn hình</label></div>
+ <div id="em_pick" class="pick" hidden></div>
+ <button class="p" style="margin-top:14px;width:100%;background:#b00020;border-color:#b00020;font-weight:700" onclick="sendEmergency()">🚨 PHÁT NGAY</button>
+</dialog>
+
+<dialog id="change_pass_modal" class="card" style="max-width:380px">
+ <div class="dh-row"><h2>🔑 Đổi mật khẩu</h2><button class="sm" onclick="$('#change_pass_modal').close()">✕</button></div>
+ <label>Mật khẩu hiện tại</label><input id="old_pw" type="password" autocomplete="current-password">
+ <label>Mật khẩu mới</label><input id="new_pw" type="password" autocomplete="new-password">
+ <label>Xác nhận mật khẩu mới</label><input id="confirm_pw" type="password" autocomplete="new-password">
+ <button type="button" class="p" style="margin-top:16px;width:100%" onclick="changeMyPassword()">Lưu mật khẩu mới</button>
+</dialog>
+
+<dialog id="user_modal" class="card" style="max-width:560px">
+ <div class="dh-row"><h2>👥 Người dùng &amp; Phân quyền</h2><button class="sm" onclick="$('#user_modal').close()">✕</button></div>
+ <div id="user_list_box" style="display:flex;flex-direction:column;gap:6px"></div>
+ <hr style="border:0;border-top:1px solid var(--bd);margin:16px 0">
+ <h3>➕ Thêm user mới</h3>
+ <div class="grid" style="gap:10px"><div><label>Email</label><input id="new_u_name" type="email" placeholder="nhanvien@congty.com"></div><div><label>Mật khẩu</label><input id="new_u_pass" type="password" placeholder="Tối thiểu 8 ký tự" autocomplete="new-password"></div></div>
+ <label>Vai trò</label><select id="new_u_role"><option value="admin">👑 Admin – toàn quyền, quản lý Tivi, khẩn cấp</option><option value="editor">✏️ Editor – tạo, sửa, duyệt nội dung, gửi lệnh Tivi</option><option value="creator" selected>➕ Creator – tạo nội dung (chờ duyệt)</option></select>
+ <button type="button" class="p" style="margin-top:12px;width:100%" onclick="addUser()">Thêm user</button>
+</dialog>
+
+<dialog id="media_modal" class="card" style="max-width:840px">
+ <div class="row"><h2 id="media_title" style="margin:0">📚 Thư viện media</h2><span style="flex:1"></span>
+  <label class="tag" style="cursor:pointer;margin:0;padding:6px 12px;background:var(--ac);color:#fff;border-color:var(--ac)">⬆ Tải lên<input type="file" multiple accept="image/*,video/mp4,video/webm" hidden onchange="uploadFromLibrary(this)"></label>
+  <button class="sm" onclick="$('#media_modal').close()">✕ Đóng</button></div>
+ <p class="hint" id="media_status" style="margin:6px 0 0">Ảnh tự thu nhỏ còn tối đa 2560px. Video tối đa 50 MB.</p>
+ <div id="media_grid" class="mgrid"></div>
+</dialog>
+
+<script>
+document.body.insertAdjacentHTML('beforeend',playerMarkup());
+
+/* ================= QUYỀN ================= */
+// Giao diện ẩn/hiện theo quyền. Quyền THẬT được kiểm tra ở server (RLS + trigger).
+const PERMS={
+ admin:['create','edit','delete','settings','users','screens','cmd','alert'],
+ editor:['create','edit','cmd'],
+ creator:['create'],
+ none:[]
+};
+let me=null;
+const can=a=>!!me&&(PERMS[me.role]||[]).includes(a);
+
+/* ================= KẾT NỐI ================= */
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+const rememberOn=()=>lsGet('sig_remember')!=='0';
+const authStorage={
+ getItem:k=>{try{return (rememberOn()?localStorage:sessionStorage).getItem(k)}catch(e){return null}},
+ setItem:(k,v)=>{try{if(rememberOn()){localStorage.setItem(k,v);sessionStorage.removeItem(k)}else{sessionStorage.setItem(k,v);localStorage.removeItem(k)}}catch(e){}},
+ removeItem:k=>{try{localStorage.removeItem(k);sessionStorage.removeItem(k)}catch(e){}}
+};
+const sb=SB_READY?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storage:authStorage,storageKey:'sig_auth'}}):null;
+if(sb)sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&me)showLogin()});
+let bumpCh=null;
+function bump(){try{if(!bumpCh){bumpCh=sb.channel(BUMP_CHANNEL);bumpCh.subscribe()}bumpCh.send({type:'broadcast',event:'bump',payload:{at:Date.now()}})}catch(e){console.warn('bump',e)}}
+async function q(p){const {data,error}=await p;if(error)throw error;return data}
+function setCloud(text,ok){const b=$('#cloud_badge');b.textContent=text;b.style.background=ok===true?'#2e7d32':ok===false?'#c62828':'';b.style.color=ok==null?'':'#fff';b.style.borderColor=ok===true?'#2e7d32':ok===false?'#c62828':''}
+function fail(e,what){console.error(what,e);alert((what?what+': ':'')+(e&&e.message||e))}
+
+/* ================= ĐĂNG NHẬP ================= */
+function showLogin(msg){me=null;$('#main_wrap').hidden=true;$('#login_overlay').style.display='flex';$('#l_err').style.display=msg?'block':'none';if(msg)$('#l_err').textContent=msg;prefillLogin()}
+function prefillLogin(){const rm=rememberOn();$('#l_remember').checked=rm;const em=lsGet('sig_last_email');if(rm&&em&&!$('#l_u').value)$('#l_u').value=em}
+function togglePwVisible(){const p=$('#l_p');p.type=p.type==='password'?'text':'password';$('#l_eye').textContent=p.type==='password'?'👁️':'🙈'}
+async function loadProfile(session){
+ if(!session||!session.user)return null;
+ const {data,error}=await sb.from('profiles').select('role,email,is_owner').eq('id',session.user.id).maybeSingle();
+ if(error){console.warn(error);return null}
+ return {id:session.user.id,u:(data&&data.email)||session.user.email,role:data&&PERMS[data.role]?data.role:'none',owner:!!(data&&data.is_owner)};
+}
+async function login(){
+ $('#l_err').style.display='none';
+ const email=$('#l_u').value.trim(),p=$('#l_p').value;if(!email||!p)return showLogin('Vui lòng nhập email và mật khẩu!');
+ const rm=$('#l_remember').checked;lsSet('sig_remember',rm?'1':'0');lsSet('sig_last_email',rm?email:null);
+ const btn=$('#l_btn');btn.disabled=true;btn.textContent='Đang đăng nhập...';
+ let r;try{r=await sb.auth.signInWithPassword({email,password:p})}finally{btn.disabled=false;btn.textContent='Đăng nhập'}
+ $('#l_p').value='';
+ if(r.error)return showLogin(/rate|too many/i.test(r.error.message)?'Thử sai quá nhiều lần, vui lòng đợi ít phút.':'Email hoặc mật khẩu không đúng!');
+ const u=await loadProfile(r.data.session);if(!u)return showLogin('Không đọc được hồ sơ người dùng. Admin đã chạy các file SQL chưa?');
+ enterAs(u);
+}
+async function restoreSession(){const {data}=await sb.auth.getSession();if(data&&data.session){const u=await loadProfile(data.session);if(u)return enterAs(u)}showLogin()}
+async function logout(){try{await sb.auth.signOut()}catch(e){}authStorage.removeItem('sig_auth');showLogin()}
+function enterAs(u){
+ me=u;$('#login_overlay').style.display='none';$('#main_wrap').hidden=false;
+ $('#user_badge').textContent=`👤 ${u.u} · ${u.owner?'OWNER':u.role.toUpperCase()}`;
+ if(u.role==='none'){alert('Tài khoản chưa được cấp quyền. Hãy nhờ Admin phân quyền cho bạn.')}
+ applyPermissions();loadAll();
+}
+function applyPermissions(){
+ const sh=(s,v)=>{const e=$(s);if(e)e.style.display=v?'':'none'};
+ sh('#btn_users',can('users'));sh('#btn_em',can('alert'));sh('#btn_em2',can('alert'));sh('#btn_pair',can('screens'));sh('#btn_groups',can('screens'));
+ sh('#btn_media',can('create'));sh('#tab_settings',can('settings'));sh('#add_card',can('create'));
+}
+function toggleUserMenu(e){e.stopPropagation();const l=$('#umenu_list');l.hidden=!l.hidden}
+function closeUserMenu(){$('#umenu_list').hidden=true}
+document.addEventListener('click',e=>{if(!e.target.closest('#umenu'))closeUserMenu()});
+
+/* ================= DỮ LIỆU ================= */
+const DB={settings:{},groups:[],screens:[],slides:[],alerts:[]};
+const gName=id=>(DB.groups.find(g=>g.id===id)||{}).name;
+const sName=id=>(DB.screens.find(s=>s.id===id)||{}).name;
+async function loadAll(){
+ if(!me)return;setCloud('☁️ Đang tải...',null);
+ try{
+  const [st,gr,sl,al]=await Promise.all([
+   q(sb.from('sig_settings').select('*').eq('id',1).maybeSingle()),
+   q(sb.from('screen_groups').select('*').order('sort').order('name')),
+   q(sb.from('slides').select('*').order('sort')),
+   q(sb.from('alerts').select('*').order('created_at',{ascending:false}).limit(40))]);
+  DB.settings=st||{};DB.groups=gr||[];DB.slides=sl||[];DB.alerts=al||[];
+  await loadScreens(true);
+  $('#err_bar').hidden=true;setCloud('☁️ Đã kết nối ✔',true);
+ }catch(e){
+  console.error(e);setCloud('⚠️ Lỗi kết nối',false);
+  const missing=/relation|does not exist|schema cache|Could not find/i.test(e.message||'');
+  $('#err_bar').textContent=missing?'⚠️ Chưa có cấu trúc dữ liệu v2. Admin cần chạy file supabase_v2.sql trong Supabase → SQL Editor (xem HUONG-DAN-V2.md).':'⚠️ Không tải được dữ liệu: '+(e.message||e);
+  $('#err_bar').hidden=false;
+ }
+ renderAll();
+}
+async function loadScreens(silent){
+ try{DB.screens=await q(sb.from('screens').select('id,name,location,group_id,status,ticker,lay,sidenote,last_seen,info,created_at,paired_at,paired_by').neq('status','pending').order('name'))||[]}
+ catch(e){if(!silent)fail(e,'Không tải được danh sách màn hình');return}
+ if(!silent){renderScreens();renderStats();refreshPick()}
+}
+function renderAll(){refreshPick();renderStats();renderGroupChips();renderScreens();fillScopeSelect();renderSlides();renderAlerts();renderEmBar();renderSettings();brandLogo()}
+
+/* ================= TAB ================= */
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(!b)return;
+ $$('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+ $$('.pane').forEach(p=>p.hidden=p.id!=='pane_'+b.dataset.tab);lsSet('sig_tab',b.dataset.tab)});
+(()=>{const t=lsGet('sig_tab');const b=t&&$(`#tabs button[data-tab="${t}"]`);if(b&&t!=='settings')b.click()})();
+
+/* ================= MÀN HÌNH ================= */
+const ONLINE_MS=70e3;
+function scrState(s){
+ if(s.status==='disabled')return'dis';
+ if(!s.last_seen||Date.now()-Date.parse(s.last_seen)>ONLINE_MS)return'off';
+ if(s.info&&s.info.paused)return'pa';
+ return'on';
+}
+function rel(iso){if(!iso)return'chưa từng';const d=(Date.now()-Date.parse(iso))/1e3;if(d<60)return'vừa xong';if(d<3600)return Math.floor(d/60)+' phút trước';if(d<86400)return Math.floor(d/3600)+' giờ trước';return new Date(iso).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function slidesFor(scr){return DB.slides.filter(sl=>sl.target_all||(sl.target_screens||[]).includes(scr.id)||(scr.group_id&&(sl.target_groups||[]).includes(scr.group_id)))}
+function playableFor(scr){return slidesFor(scr).filter(sl=>sl.enabled&&sl.status==='approved').map(rowToSlide)}
+function alertFor(scr){const now=Date.now();return DB.alerts.find(a=>a.active&&Date.parse(a.starts_at)<=now&&(!a.until||Date.parse(a.until)>now)&&(a.target_all||(a.target_screens||[]).includes(scr.id)||(scr.group_id&&(a.target_groups||[]).includes(scr.group_id))))}
+let groupFilter='';
+function renderStats(){
+ const ss=DB.screens,c=k=>ss.filter(s=>scrState(s)===k).length;
+ $('#cnt_screens').textContent=ss.length;
+ $('#stats').innerHTML=`<div class="stat"><b>${ss.length}</b><span>Tổng màn hình</span></div><div class="stat g"><b>${c('on')}</b><span>Đang phát</span></div><div class="stat r"><b>${c('off')}</b><span>Mất kết nối</span></div><div class="stat y"><b>${c('pa')+c('dis')}</b><span>Tạm dừng / ngưng</span></div><div class="stat"><b>${DB.groups.length}</b><span>Nhóm</span></div>`;
+}
+function renderGroupChips(){
+ const all=[['','Tất cả'],...DB.groups.map(g=>[g.id,g.name]),['_none','Chưa có nhóm']];
+ $('#group_chips').innerHTML=all.map(([id,n])=>{const k=id===''?DB.screens.length:DB.screens.filter(s=>id==='_none'?!s.group_id:s.group_id===id).length;return`<button class="chip ${groupFilter===id?'on':''}" onclick="groupFilter='${id}';renderGroupChips();renderScreens()">${esc(n)} <span class="hint" style="color:inherit;opacity:.75">${k}</span></button>`}).join('');
+}
+function renderScreens(){
+ const box=$('#screen_grid');
+ let ss=DB.screens.filter(s=>!groupFilter||(groupFilter==='_none'?!s.group_id:s.group_id===groupFilter));
+ if(!ss.length){box.innerHTML=`<div class="empty" style="grid-column:1/-1">${DB.screens.length?'Không có màn hình trong nhóm này.':'Chưa có màn hình nào.<br><br>1. Trên Tivi mở <b>'+esc(playerURL())+'</b><br>2. Bấm <b>➕ Ghép nối Tivi</b> và nhập mã 6 số đang hiện trên Tivi.'}</div>`;return}
+ const order={off:0,pa:1,on:2,dis:3};ss=[...ss].sort((a,b)=>(order[scrState(a)]-order[scrState(b)])||a.name.localeCompare(b.name,'vi'));
+ box.innerHTML=ss.map(s=>{
+  const st=scrState(s),i=s.info||{},n=playableFor(s).length,al=alertFor(s);
+  const lbl={on:'Đang phát',off:'Mất kết nối',pa:'Tạm dừng trên Tivi',dis:'Admin đã tạm ngưng'}[st];
+  const now=st==='on'||st==='pa'?(i.alert?'🚨 Đang hiện thông báo khẩn cấp':i.now?'▶ '+esc(LBL[i.now.type]||i.now.type)+': '+esc(i.now.t||''):'▶ —'):`⏱ Lần cuối: ${rel(s.last_seen)}`;
+  return`<div class="scr ${st} ${al?'em':''}">
+   <div class="scr-h"><span class="dot" title="${lbl}"></span><b title="${esc(s.name)}">${esc(s.name)}</b>${s.group_id?`<span class="tag">${esc(gName(s.group_id)||'')}</span>`:''}</div>
+   <div class="hint">${esc(s.location||'')}${s.location?' · ':''}${lbl}</div>
+   <div class="scr-now" title="${esc(now.replace(/<[^>]+>/g,''))}">${now}</div>
+   <div class="hint" style="font-size:12px">📄 ${n} nội dung${s.ticker||s.lay||s.sidenote?' · ⚙️ có cài đặt riêng':''}${i.res?' · '+esc(i.res):''}${i.v?' · v'+esc(i.v):''}${st==='on'?' · '+rel(s.last_seen):''}</div>
+   <div class="row">
+    <button class="sm" onclick="previewScreen('${s.id}')" title="Xem màn này đang phát gì">👁 Xem</button>
+    ${can('cmd')?`<button class="sm" onclick="sendCmd('${s.id}','identify')" title="Hiện tên trên Tivi 15 giây">🔆 Nhận diện</button><button class="sm" onclick="sendCmd('${s.id}','next')" title="Chuyển slide tiếp">⏭</button><button class="sm" onclick="sendCmd('${s.id}','reload')" title="Tải lại trang trên Tivi">🔄</button>`:''}
+    ${can('screens')?`<button class="sm" onclick="editScreen('${s.id}')">✏️ Sửa</button>`:''}
+   </div></div>`}).join('');
+}
+const playerURL=()=>location.href.replace(/admin\.html.*$/,'player.html').replace(/\/(\?.*)?$/,'/player.html');
+async function sendCmd(id,cmd){
+ try{await q(sb.from('screen_commands').insert({screen_id:id,cmd,created_by_email:me.u}));bump();
+  const s=DB.screens.find(x=>x.id===id);if(s&&scrState(s)==='off')alert('Đã gửi lệnh. Màn hình đang mất kết nối – lệnh sẽ chạy nếu Tivi kết nối lại trong 10 phút.')}
+ catch(e){fail(e,'Không gửi được lệnh')}
+}
+function previewScreen(id){
+ const s=DB.screens.find(x=>x.id===id);if(!s)return;
+ const st=DB.settings;
+ startPreview(activeSlides(playableFor(s)),{company:st.company,logo:st.logo,ticker:s.ticker||st.ticker,lay:s.lay||st.lay,sidenote:s.sidenote||st.sidenote});
+}
+function groupOptions(sel,withNone){return(withNone?`<option value="">— Không thuộc nhóm —</option>`:'')+DB.groups.map(g=>`<option value="${g.id}" ${g.id===sel?'selected':''}>${esc(g.name)}</option>`).join('')+`<option value="__new">➕ Tạo nhóm mới…</option>`}
+async function groupSelectNew(selEl){
+ if(selEl.value!=='__new')return;
+ const n=(prompt('Tên nhóm mới:')||'').trim();if(!n){selEl.value='';return}
+ try{const g=await q(sb.from('screen_groups').insert({name:n,sort:DB.groups.length}).select().single());DB.groups.push(g);selEl.innerHTML=groupOptions(g.id,true);renderGroupChips()}
+ catch(e){selEl.value='';fail(e,'Không tạo được nhóm')}
+}
+function editScreen(id){
+ const s=DB.screens.find(x=>x.id===id);if(!s)return;
+ $('#sd_id').value=id;$('#sd_name').value=s.name;$('#sd_loc').value=s.location||'';$('#sd_group').innerHTML=groupOptions(s.group_id,true);$('#sd_group').onchange=e=>groupSelectNew(e.target);
+ $('#sd_status').value=s.status;$('#sd_ticker').value=s.ticker||'';$('#sd_lay').value=s.lay||'';$('#sd_side').value=s.sidenote||'';
+ const i=s.info||{};$('#sd_info').innerHTML=`Ghép nối: ${s.paired_at?new Date(s.paired_at).toLocaleString('vi-VN'):'—'}${s.paired_by?' bởi '+esc(s.paired_by):''}<br>Thiết bị: ${esc(i.res||'—')} · Cửa sổ ${esc(i.vp||'—')} · Ảnh/video đã lưu offline: ${i.cache??'—'} · Chạy liên tục ${i.up!=null?i.up+' phút':'—'}<br><span style="font-size:11px">${esc(i.ua||'')}</span>`;
+ $('#scr_dlg').showModal();
+}
+async function saveScreen(){
+ const id=$('#sd_id').value,g=$('#sd_group').value;
+ const row={name:$('#sd_name').value.trim()||'Tivi',location:$('#sd_loc').value.trim(),group_id:g&&g!=='__new'?g:null,status:$('#sd_status').value,
+  ticker:$('#sd_ticker').value.trim()||null,lay:$('#sd_lay').value||null,sidenote:$('#sd_side').value.trim()||null};
+ try{const r=await q(sb.from('screens').update(row).eq('id',id).select('id'));if(!r.length)throw new Error('Không có quyền');$('#scr_dlg').close();bump();await loadScreens();renderGroupChips()}
+ catch(e){fail(e,'Không lưu được')}
+}
+async function deleteScreen(){
+ const id=$('#sd_id').value,s=DB.screens.find(x=>x.id===id);
+ if(!confirm(`Gỡ màn hình "${s&&s.name}"?\nTivi sẽ quay về màn hình hiện mã ghép nối.`))return;
+ try{await q(sb.from('screens').delete().eq('id',id));$('#scr_dlg').close();bump();
+  DB.slides.filter(x=>(x.target_screens||[]).includes(id)).forEach(x=>sb.from('slides').update({target_screens:x.target_screens.filter(v=>v!==id)}).eq('id',x.id).then(()=>{}));
+  await loadScreens();renderGroupChips()}
+ catch(e){fail(e,'Không gỡ được')}
+}
+function openPair(){
+ $('#pair_url').textContent=playerURL();['pc_code','pc_name','pc_loc'].forEach(i=>$('#'+i).value='');
+ $('#pc_group').innerHTML=groupOptions(groupFilter&&groupFilter!=='_none'?groupFilter:'',true);$('#pc_group').onchange=e=>groupSelectNew(e.target);
+ $('#pair_dlg').showModal();setTimeout(()=>$('#pc_code').focus(),50);
+}
+async function claimScreen(){
+ const code=$('#pc_code').value.replace(/\D/g,''),name=$('#pc_name').value.trim(),g=$('#pc_group').value;
+ if(code.length!==6)return alert('Nhập đủ 6 số đang hiện trên Tivi.');if(!name)return alert('Đặt tên cho màn hình (VD: Tivi sảnh).');
+ try{await q(sb.rpc('screen_claim',{p_code:code,p_name:name,p_location:$('#pc_loc').value.trim(),p_group:g&&g!=='__new'?g:null}));
+  $('#pair_dlg').close();bump();await loadScreens();renderGroupChips();alert(`✅ Đã ghép nối "${name}". Tivi sẽ bắt đầu phát trong vài giây.`)}
+ catch(e){fail(e,'Ghép nối không thành công')}
+}
+function openGroups(){renderGroupList();$('#grp_dlg').showModal()}
+function renderGroupList(){
+ $('#grp_list').innerHTML=DB.groups.map(g=>{const k=DB.screens.filter(s=>s.group_id===g.id).length;return`<div class="it"><input value="${esc(g.name)}" style="flex:1" onchange="renameGroup('${g.id}',this.value)"><span class="tag">${k} màn</span><button class="sm" style="color:#d92d20" onclick="delGroup('${g.id}')">Xóa</button></div>`}).join('')||'<p class="hint">Chưa có nhóm.</p>';
+}
+async function addGroup(){const n=$('#grp_new').value.trim();if(!n)return;try{const g=await q(sb.from('screen_groups').insert({name:n,sort:DB.groups.length}).select().single());DB.groups.push(g);$('#grp_new').value='';renderGroupList();renderGroupChips();fillScopeSelect();refreshPick()}catch(e){fail(e,'Không thêm được nhóm')}}
+async function renameGroup(id,n){n=n.trim();if(!n)return renderGroupList();try{await q(sb.from('screen_groups').update({name:n}).eq('id',id));const g=DB.groups.find(x=>x.id===id);if(g)g.name=n;bump();renderGroupChips();renderScreens();fillScopeSelect()}catch(e){fail(e,'Không đổi tên được')}}
+async function delGroup(id){if(!confirm('Xóa nhóm này? Các màn hình trong nhóm sẽ thành "Chưa có nhóm".'))return;try{await q(sb.from('screen_groups').delete().eq('id',id));DB.groups=DB.groups.filter(g=>g.id!==id);if(groupFilter===id)groupFilter='';bump();await loadScreens(true);renderGroupList();renderAll()}catch(e){fail(e,'Không xóa được nhóm')}}
+
+/* ================= CHỌN PHẠM VI (nhóm / màn hình) ================= */
+function pickHTML(prefix,groups,screens){
+ return(DB.groups.length?'<h5>Nhóm</h5>'+DB.groups.map(g=>`<label><input type="checkbox" data-${prefix}g="${g.id}" ${groups.includes(g.id)?'checked':''}> 🗂 ${esc(g.name)} <span class="hint">(${DB.screens.filter(s=>s.group_id===g.id).length} màn)</span></label>`).join(''):'')
+  +(DB.screens.length?'<h5>Từng màn hình</h5>'+DB.screens.map(s=>`<label><input type="checkbox" data-${prefix}s="${s.id}" ${screens.includes(s.id)?'checked':''}> 📺 ${esc(s.name)}${s.group_id?` <span class="hint">· ${esc(gName(s.group_id)||'')}</span>`:''}</label>`).join(''):'')
+  ||'<p class="hint">Chưa có nhóm hay màn hình nào. Hãy ghép nối Tivi trước.</p>';
+}
+const picked=(box,prefix)=>({groups:[...box.querySelectorAll(`[data-${prefix}g]:checked`)].map(x=>x.dataset[prefix+'g']),screens:[...box.querySelectorAll(`[data-${prefix}s]:checked`)].map(x=>x.dataset[prefix+'s'])});
+function refreshPick(){const box=$('#tgt_pick');if(!box)return;const p=picked(box,'t');if(!box.innerHTML&&edit){const r=DB.slides.find(x=>x.id===edit);if(r){p.groups=r.target_groups||[];p.screens=r.target_screens||[]}}box.innerHTML=pickHTML('t',p.groups,p.screens)}
+function tgtMode(){$('#tgt_pick').hidden=document.querySelector('input[name=tmode]:checked').value==='all'}
+function emMode(){$('#em_pick').hidden=document.querySelector('input[name=emode]:checked').value==='all'}
+function tgtTags(x){
+ if(x.target_all)return'<span class="tag tgt">🌐 Tất cả màn</span>';
+ const t=[...(x.target_groups||[]).map(id=>gName(id)&&'🗂 '+gName(id)),...(x.target_screens||[]).map(id=>sName(id)&&'📺 '+sName(id))].filter(Boolean);
+ return t.length?t.slice(0,3).map(n=>`<span class="tag tgt">${esc(n)}</span>`).join('')+(t.length>3?`<span class="tag tgt">+${t.length-3}</span>`:''):'<span class="tag tgt warn">⚠️ Chưa chọn màn</span>';
+}
+
+/* ================= NỘI DUNG ================= */
+const rowToSlide=r=>Object.assign({},r.data||{},{id:r.id,type:r.type});
+function fillScopeSelect(){
+ const v=$('#f_scope').value;
+ $('#f_scope').innerHTML='<option value="">📄 Tất cả nội dung</option><option value="_pending">⏳ Chờ duyệt</option>'+(DB.groups.length?'<optgroup label="Theo nhóm">'+DB.groups.map(g=>`<option value="g:${g.id}">🗂 ${esc(g.name)}</option>`).join('')+'</optgroup>':'')+(DB.screens.length?'<optgroup label="Theo màn hình (xem màn đó phát gì)">'+DB.screens.map(s=>`<option value="s:${s.id}">📺 ${esc(s.name)}</option>`).join('')+'</optgroup>':'');
+ if([...$('#f_scope').options].some(o=>o.value===v))$('#f_scope').value=v;
+}
+function scopeRows(){
+ const v=$('#f_scope').value,qq=$('#f_q').value.trim().toLowerCase();
+ let rows=DB.slides;
+ if(v==='_pending')rows=rows.filter(r=>r.status==='pending');
+ else if(v.startsWith('g:')){const g=v.slice(2);rows=rows.filter(r=>r.target_all||(r.target_groups||[]).includes(g))}
+ else if(v.startsWith('s:')){const s=DB.screens.find(x=>x.id===v.slice(2));rows=s?slidesFor(s):[]}
+ if(qq)rows=rows.filter(r=>JSON.stringify([r.data&&r.data.title,r.data&&r.data.sub,r.data&&r.data.wname,r.type,LBL[r.type]]).toLowerCase().includes(qq));
+ return rows;
+}
+function renderSlides(){
+ const canE=can('edit'),rows=scopeRows(),pend=DB.slides.filter(s=>s.status==='pending').length,pb=$('#pending_bar');
+ $('#cnt_slides').textContent=DB.slides.length;
+ pb.style.display=(canE&&pend)?'':'none';pb.innerHTML=`⏳ Có ${pend} nội dung đang chờ bạn duyệt <button class="sm" onclick="$('#f_scope').value='_pending';renderSlides()">Xem</button>`;
+ const dragOK=canE&&!$('#f_scope').value&&!$('#f_q').value.trim();
+ $('#list_hint').textContent=dragOK?'Kéo ⋮⋮ để sắp xếp thứ tự phát · 👁 xem trước':'Thứ tự phát theo danh sách "Tất cả nội dung" · 👁 xem trước';
+ $('#empty').style.display=rows.length?'none':'';$('#empty').textContent=DB.slides.length?'Không có nội dung phù hợp bộ lọc.':'Chưa có nội dung. Hãy thêm ở bên phải.';
+ $('#list').innerHTML=rows.map(r=>{
+  const d=r.data||{},st=r.status,mine=me&&r.created_by===me.id;
+  const stTag=st==='pending'?'<span class="tag st-p">⏳ Chờ duyệt</span>':st==='rejected'?'<span class="tag st-r">✖ Từ chối</span>':'';
+  const apr=(canE&&st!=='approved')?`<button class="sm" style="color:#2e7d32" onclick="approve('${r.id}',true)">✔ Duyệt</button>`+(st==='pending'?`<button class="sm" style="color:#b42318" onclick="approve('${r.id}',false)" title="Từ chối">✖</button>`:''):'';
+  const canEditThis=canE||(mine&&st==='pending');
+  const info=[r.created_by_email&&('Tạo: '+r.created_by_email),r.updated_by_email&&('Sửa: '+r.updated_by_email),r.reviewed_by_email&&('Duyệt: '+r.reviewed_by_email)].filter(Boolean).join(' · ');
+  const sched=[d.from||d.to?`📆 ${d.from||'…'} → ${d.to||'…'}`:'',d.t1||d.t2?`🕘 ${d.t1||'…'}–${d.t2||'…'}`:'',d.days&&d.days.length<7?'📅 '+d.days.map(x=>['CN','T2','T3','T4','T5','T6','T7'][x]).join(','):''].filter(Boolean).join(' ');
+  return`<div class="it ${r.enabled&&st==='approved'?'':'off'}" data-id="${r.id}" ${dragOK?'draggable="true"':''} title="${esc(info)}" style="flex-wrap:wrap">
+   ${dragOK?'<span class="dh" title="Kéo để sắp xếp">⋮⋮</span>':''}<input type="checkbox" style="width:auto" ${r.enabled?'checked':''} ${canE?'':'disabled'} onchange="toggleSlide('${r.id}',this.checked)" title="Bật/tắt">
+   <span class="tag">${esc(LBL[r.type]||r.type)}</span>${stTag}<span class="t">${esc(d.title||d.wname||d.wurl||d.vurl||LBL[r.type]||'')}</span>
+   <button class="sm" onclick="previewRow('${r.id}')" title="Xem trước">👁</button>${apr}
+   ${canEditThis?`<button class="sm" onclick="ed('${r.id}')">Sửa</button>`:''}${can('create')?`<button class="sm" onclick="dup('${r.id}')" title="Nhân bản">⧉</button>`:''}${can('delete')||(mine&&st==='pending')?`<button class="sm" onclick="delSlide('${r.id}')">Xóa</button>`:''}
+   <div style="flex-basis:100%;display:flex;gap:4px;flex-wrap:wrap;padding-left:${dragOK?44:24}px">${tgtTags(r)}${sched?`<span class="tag">${esc(sched)}</span>`:''}</div></div>`;
+ }).join('');
+}
+async function patchSlide(id,row){const r=await q(sb.from('slides').update(row).eq('id',id).select());if(!r.length)throw new Error('Không có quyền sửa nội dung này');const i=DB.slides.findIndex(x=>x.id===id);if(i>=0)DB.slides[i]=r[0];bump();return r[0]}
+async function toggleSlide(id,on){try{await patchSlide(id,{enabled:on})}catch(e){fail(e,'Không lưu được')}renderSlides();renderScreens()}
+async function approve(id,ok){try{await patchSlide(id,{status:ok?'approved':'rejected'})}catch(e){fail(e,'Không duyệt được')}renderSlides();renderScreens()}
+async function delSlide(id){if(!confirm('Xóa nội dung này?'))return;try{await q(sb.from('slides').delete().eq('id',id));DB.slides=DB.slides.filter(x=>x.id!==id);if(edit===id)reset();bump()}catch(e){fail(e,'Không xóa được')}renderSlides();renderScreens()}
+async function dup(id){const r=DB.slides.find(x=>x.id===id);if(!r)return;const d=Object.assign({},r.data);if(d.title)d.title+=' (bản sao)';
+ try{const n=await q(sb.from('slides').insert({type:r.type,data:d,enabled:false,status:can('edit')?'approved':'pending',target_all:r.target_all,target_groups:r.target_groups,target_screens:r.target_screens,sort:r.sort+0.001}).select().single());DB.slides.push(n);DB.slides.sort((a,b)=>a.sort-b.sort);bump();renderSlides();ed(n.id)}catch(e){fail(e,'Không nhân bản được')}}
+async function reorder(fromId,toId){
+ const L=DB.slides,fi=L.findIndex(x=>x.id===fromId),ti=L.findIndex(x=>x.id===toId);if(fi<0||ti<0||fi===ti)return;
+ const rest=L.filter(x=>x.id!==fromId),idx=rest.findIndex(x=>x.id===toId),ins=fi<ti?idx+1:idx;
+ const prev=rest[ins-1],next=rest[ins],ns=prev&&next?(prev.sort+next.sort)/2:prev?prev.sort+1:next?next.sort-1:Date.now()/1e3;
+ try{await patchSlide(fromId,{sort:ns});DB.slides.sort((a,b)=>a.sort-b.sort)}catch(e){fail(e,'Không sắp xếp được')}renderSlides();
+}
+(()=>{const box=$('#list');let from=null;const clear=()=>box.querySelectorAll('.drop,.dragging').forEach(x=>x.classList.remove('drop','dragging'));
+ box.addEventListener('dragstart',e=>{const it=e.target.closest&&e.target.closest('.it[draggable]');if(!it)return;from=it.dataset.id;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',from)}catch(_){}it.classList.add('dragging')});
+ box.addEventListener('dragover',e=>{if(!from)return;e.preventDefault();const it=e.target.closest('.it');box.querySelectorAll('.drop').forEach(x=>x!==it&&x.classList.remove('drop'));if(it&&it.dataset.id!==from)it.classList.add('drop')});
+ box.addEventListener('drop',e=>{e.preventDefault();const it=e.target.closest('.it'),f=from;from=null;clear();if(f&&it)reorder(f,it.dataset.id)});
+ box.addEventListener('dragend',()=>{from=null;clear()});
+})();
+
+/* ===== Form thêm/sửa ===== */
+let edit=null,imgData='',saving=false;
+$('#kind').innerHTML=Object.entries(KINDS).map(([k,v])=>`<option value="${k}">${v[0]} ${v[1]}</option>`).join('');
+$('#days').innerHTML=['CN','T2','T3','T4','T5','T6','T7'].map((d,i)=>`<label style="display:inline-flex;gap:4px;margin:0;align-items:center"><input type="checkbox" style="width:auto" value="${i}" checked>${d}</label>`).join('');
+const setDays=a=>$$('#days input').forEach(c=>c.checked=!a||a.includes(+c.value));
+function fields(){const t=$('#type').value,sh=(id,v)=>$(id).style.display=v?'':'none';
+ sh('#kindbox',t=='event');sh('#tbox',!['meeting','video','clock','image','weather','web'].includes(t));sh('#fitbox',t=='image');
+ $('#il').textContent=t=='image'?'Chọn ảnh (hiển thị toàn màn hình)':'Ảnh nền (tùy chọn)';
+ sh('#sbox',['welcome','event','countdown'].includes(t));sh('#xbox',['welcome','meeting','text','kpi'].includes(t));sh('#ibox',!['room','web','video'].includes(t)||t==='video');sh('#vbox',t=='video');sh('#cbox',t=='countdown');
+ sh('#calbox',t=='calendar'||t=='room');sh('#wbox',t=='weather');sh('#kpibox',t=='kpi');sh('#webbox',t=='web');
+ $('#tl').textContent=t=='welcome'?'Tên công ty khách':t=='calendar'?'Tiêu đề (VD: Lịch họp phòng Sài Gòn)':t=='room'?'Tên phòng họp (VD: Phòng Hà Nội – Tầng 5)':'Tiêu đề';
+ $('#sl').textContent=t=='welcome'?'Tên khách / người tham dự':'Tên người / nhóm / dự án';
+ $('#xl').textContent=t=='meeting'?'Mỗi dòng một cuộc họp: Giờ | Nội dung | Phòng':t=='kpi'?'Nhập tay – mỗi dòng: Tên | Giá trị | Mục tiêu | Đơn vị':'Lời nhắn thêm';
+ if(t=='video'){$('#durlbl').textContent='Thời gian phát (giây) – để 0 = phát hết video';if($('#dur').value=='10')$('#dur').value='0'}
+ else{$('#durlbl').textContent=t=='room'?'Thời gian hiển thị (giây) – màn cửa phòng nên để 60':'Thời gian hiển thị (giây)';if($('#dur').value=='0')$('#dur').value='10'}
+}
+fields();
+const normFeedURL=u=>String(u||'').trim().replace(/^webcal:\/\//i,'https://');
+function renderTargetPick(r){
+ const all=!r||r.target_all;document.querySelector(`input[name=tmode][value=${all?'all':'some'}]`).checked=true;
+ $('#tgt_pick').innerHTML=pickHTML('t',r?r.target_groups||[]:[],r?r.target_screens||[]:[]);tgtMode();
+}
+function reset(){edit=null;imgData='';$('#ft').textContent='Thêm nội dung';$('#save_btn').textContent='Lưu';
+ ['title','sub','extra','vurl','from','to','t1','t2','target','icsurl','wcity','kpiurl','wurl'].forEach(i=>$('#'+i).value='');$('#zoom').value=100;
+ setDays();$('#imgst').textContent='';$('#img_clear').style.display='none';$('#img').value='';$('#vfile').value='';$('#imgov').checked=true;$('#vsound').checked=false;$('#ytcrop').checked=true;$('#dur').value=10;fields();renderTargetPick(null)}
+function ed(id){
+ const r=DB.slides.find(x=>x.id===id);if(!r)return;reset();edit=id;const s=r.data||{};
+ $('#ft').textContent='Chỉnh sửa nội dung';$('#save_btn').textContent='Lưu thay đổi';$('#type').value=r.type;fields();$('#kind').value=s.kind||'other';
+ ['title','sub','extra','dur','from','to','t1','t2','target','wurl','wcity'].forEach(k=>{if(s[k]!=null)$('#'+k).value=s[k]});$('#zoom').value=s.zoom||100;
+ setDays(s.days);$('#vurl').value=s.vurl||'';$('#vsound').checked=!!s.sound;$('#ytcrop').checked=s.ytcrop!==false;$('#fit').value=s.fit||'contain';$('#imgov').checked=s.imgov!==false;
+ imgData=s.img||'';$('#imgst').textContent=imgData?'Giữ ảnh hiện tại':'';$('#img_clear').style.display=imgData?'':'none';
+ if(s.feed)sb.from('sig_feeds').select('url').eq('id',s.feed).maybeSingle().then(({data})=>{if(data&&edit===id)$(r.type==='kpi'?'#kpiurl':'#icsurl').value=data.url});
+ renderTargetPick(r);
+ $$('#tabs button')[1].click();$('#add_card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function val(){return{kind:$('#kind').value,title:$('#title').value,sub:$('#sub').value,extra:$('#extra').value,img:imgData,imgov:$('#imgov').checked,
+ vurl:$('#vurl').value.startsWith('(')?'':$('#vurl').value.trim(),dur:+$('#dur').value,sound:$('#vsound').checked,ytcrop:$('#ytcrop').checked,fit:$('#fit').value,
+ from:$('#from').value,to:$('#to').value,t1:$('#t1').value,t2:$('#t2').value,target:$('#target').value,days:$$('#days input:checked').map(c=>+c.value),
+ wurl:$('#wurl').value.trim(),zoom:+$('#zoom').value||100}}
+function cleanData(t,v){ // chỉ giữ các trường loại slide này dùng → dữ liệu gọn, Tivi tải nhẹ
+ const keep={welcome:['title','sub','extra','img','imgov'],meeting:['extra','img','imgov'],event:['kind','title','sub','extra','img','imgov'],video:['vurl','sound','ytcrop','img','imgov'],
+  image:['img','fit'],text:['title','extra','img','imgov'],countdown:['title','sub','target','img','imgov'],clock:['img','imgov'],calendar:['title','feed','img','imgov'],room:['title','feed'],
+  weather:['wcity','wlat','wlon','wname','img','imgov'],kpi:['title','extra','feed','img','imgov'],web:['wurl','zoom']}[t]||Object.keys(v);
+ const o={};for(const k of [...keep,'dur','from','to','t1','t2','days'])if(v[k]!==undefined&&v[k]!==''&&v[k]!==null)o[k]=v[k];
+ if(o.days&&o.days.length===7)delete o.days;if(o.imgov===true)delete o.imgov;
+ return o;
+}
+async function saveFeed(kind,url,oldId){
+ if(oldId){const {data}=await sb.from('sig_feeds').select('url').eq('id',oldId).maybeSingle();if(data&&data.url===url)return oldId}
+ return (await q(sb.from('sig_feeds').insert({kind,url}).select('id').single())).id;
+}
+async function geocode(name){const r=await fetchT('https://geocoding-api.open-meteo.com/v1/search?count=1&language=vi&format=json&name='+encodeURIComponent(name),9000);const j=await r.json();if(!j.results||!j.results.length)throw new Error('không có kết quả');return j.results[0]}
+async function buildData(t,old){ // trả về data đã hoàn chỉnh (kèm feed/tọa độ) hoặc ném lỗi
+ const v=val(),od=old?old.data||{}:{};
+ if(t==='image'&&!v.img)throw new Error('Hãy chọn ảnh.');
+ if(t!=='video'&&!(v.dur>0))throw new Error('Thời gian hiển thị phải lớn hơn 0 giây.');
+ if(t==='video'){if(!v.vurl)throw new Error('Hãy nhập link, chọn từ thư viện hoặc tải file video lên.');if(!yt(v.vurl)&&!safeMedia(v.vurl))throw new Error('Link video phải bắt đầu bằng https://')}
+ if(t==='web'&&!safeWeb(v.wurl))throw new Error('Link trang web phải bắt đầu bằng https://');
+ if(t==='calendar'||t==='room'){const u=normFeedURL($('#icsurl').value);if(!/^https:\/\/\S+$/i.test(u))throw new Error('Nhập link lịch dạng ICS (https://... hoặc webcal://...).');v.feed=await saveFeed('ics',u,od.feed)}
+ if(t==='kpi'){const u=normFeedURL($('#kpiurl').value);if(u){if(!/^https:\/\/docs\.google\.com\/spreadsheets\//i.test(u))throw new Error('Link KPI phải là Google Sheet đã "Xuất bản lên web" dạng CSV.');v.feed=await saveFeed('csv',u,od.feed)}else if(!v.extra.trim())throw new Error('Nhập dữ liệu KPI hoặc dán link Google Sheet.')}
+ if(t==='weather'){const c=$('#wcity').value.trim();if(!c)throw new Error('Nhập tên thành phố.');v.wcity=c;
+  if(od.wcity===c&&od.wlat!=null){v.wlat=od.wlat;v.wlon=od.wlon;v.wname=od.wname}else{const g=await geocode(c).catch(e=>{throw new Error(`Không tìm thấy thành phố "${c}" (${e.message})`)});v.wlat=g.latitude;v.wlon=g.longitude;v.wname=g.name}}
+ return cleanData(t,v);
+}
+async function save(){
+ if(saving)return;const t=$('#type').value,old=edit?DB.slides.find(x=>x.id===edit):null;
+ if(old?!(can('edit')||(old.created_by===me.id&&old.status==='pending')):!can('create'))return alert('Bạn không có quyền thực hiện thao tác này!');
+ const all=document.querySelector('input[name=tmode]:checked').value==='all',p=picked($('#tgt_pick'),'t');
+ if(!all&&!p.groups.length&&!p.screens.length)return alert('Chọn ít nhất 1 nhóm hoặc 1 màn hình (hoặc chọn "Tất cả màn hình").');
+ saving=true;$('#save_btn').disabled=true;
+ try{
+  const data=await buildData(t,old);
+  const row={type:t,data,target_all:all,target_groups:all?[]:p.groups,target_screens:all?[]:p.screens};
+  if(old){if(old.status==='rejected'&&can('edit'))row.status='approved';await patchSlide(old.id,row)}
+  else{row.status=can('edit')?'approved':'pending';row.sort=(DB.slides.length?DB.slides[DB.slides.length-1].sort:0)+1;const n=await q(sb.from('slides').insert(row).select().single());DB.slides.push(n);bump();
+   if(n.status==='pending')alert('Đã gửi! Nội dung sẽ lên màn hình sau khi Editor/Admin duyệt.')}
+  reset();renderSlides();renderScreens();
+ }catch(e){fail(e,'Không lưu được')}
+ finally{saving=false;$('#save_btn').disabled=false}
+}
+
+/* ================= XEM TRƯỚC ================= */
+function startPreview(list,settings,alert){PL.settings=settings||{};PL.alert=alert||null;plStart({preview:list.length?list:[{type:'text',title:'Chưa có nội dung',extra:'Màn hình này hiện không có nội dung nào để phát'}]})}
+const baseSettings=()=>({company:DB.settings.company,logo:DB.settings.logo,ticker:DB.settings.ticker,lay:DB.settings.lay,sidenote:DB.settings.sidenote});
+function previewRow(id){const r=DB.slides.find(x=>x.id===id);if(r)startPreview([rowToSlide(r)],baseSettings())}
+async function previewForm(){
+ const t=$('#type').value,old=edit?DB.slides.find(x=>x.id===edit):null;
+ try{
+  let d;if(t==='calendar'||t==='room'||t==='kpi'){d=cleanData(t,val());if(old&&old.data.feed)d.feed=old.data.feed;if((t!=='kpi'||$('#kpiurl').value)&&!d.feed)return alert('Lưu nội dung trước rồi mới xem trước được (cần kết nối nguồn lịch/Sheet).')}
+  else d=await buildData(t,old);
+  startPreview([Object.assign(d,{type:t,id:'preview'})],baseSettings());
+ }catch(e){alert(e.message||e)}
+}
+function previewScope(){
+ const v=$('#f_scope').value;
+ if(v.startsWith('s:'))return previewScreen(v.slice(2));
+ const rows=(v.startsWith('g:')?scopeRows():DB.slides).filter(r=>r.enabled&&r.status==='approved');
+ startPreview(activeSlides(rows.map(rowToSlide)),baseSettings());
+}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&PL.running)plStop()});
+$('#player').addEventListener('dblclick',()=>plStop());
+
+/* ================= KHẨN CẤP ================= */
+const activeAlerts=()=>{const n=Date.now();return DB.alerts.filter(a=>a.active&&(!a.until||Date.parse(a.until)>n))};
+function alertScope(a){if(a.target_all)return'Tất cả màn hình';return[...(a.target_groups||[]).map(id=>'🗂 '+(gName(id)||'?')),...(a.target_screens||[]).map(id=>'📺 '+(sName(id)||'?'))].join(', ')||'—'}
+function renderEmBar(){
+ const A=activeAlerts(),bar=$('#em_bar');bar.style.display=A.length?'flex':'none';
+ bar.innerHTML=A.map(a=>`<div style="display:flex;gap:10px;align-items:center;width:100%">🚨 ĐANG PHÁT: <b style="flex:1">${esc(a.title||a.msg)}</b><span style="font-weight:400;opacity:.9">${esc(alertScope(a))}${a.until?' · đến '+hhmm(new Date(a.until)):''}</span>${can('alert')?`<button onclick="stopAlert('${a.id}')" style="background:#fff;color:#b00020;border-color:#fff">Tắt</button>`:''}</div>`).join('');
+}
+function renderAlerts(){
+ $('#alert_list').innerHTML=DB.alerts.map(a=>{const on=activeAlerts().includes(a);return`<div class="al"><span class="lv ${a.level}"></span><div class="t"><b>${esc(a.title||'(không tiêu đề)')}</b> ${on?'<span class="tag" style="background:#b00020;color:#fff;border-color:#b00020">ĐANG PHÁT</span>':''}<div class="hint">${esc(a.msg)}</div><div class="hint" style="font-size:12px">📺 ${esc(alertScope(a))} · Phát ${new Date(a.starts_at).toLocaleString('vi-VN')} bởi ${esc(a.created_by_email||'?')}${a.stopped_at?' · Tắt '+new Date(a.stopped_at).toLocaleTimeString('vi-VN')+' bởi '+esc(a.stopped_by_email||'?'):''}</div></div>${on&&can('alert')?`<button class="sm" onclick="stopAlert('${a.id}')">Tắt</button>`:can('alert')?`<button class="sm" onclick="resendAlert('${a.id}')" title="Điền lại vào form để phát lại">↻ Phát lại</button>`:''}</div>`}).join('')||'<p class="hint">Chưa có thông báo khẩn cấp nào.</p>';
+}
+function openEmergency(a){
+ if(!can('alert'))return;
+ $('#em_title').value=a?a.title:'';$('#em_msg').value=a?a.msg:'';if(a){$('#em_lv').value=a.level;$('#em_snd').value=a.sound}
+ document.querySelector(`input[name=emode][value=${!a||a.target_all?'all':'some'}]`).checked=true;
+ $('#em_pick').innerHTML=pickHTML('e',a?a.target_groups||[]:[],a?a.target_screens||[]:[]);emMode();$('#em_modal').showModal();
+}
+function resendAlert(id){const a=DB.alerts.find(x=>x.id===id);if(a)openEmergency(a)}
+async function sendEmergency(){
+ const t=$('#em_title').value.trim(),m=$('#em_msg').value.trim(),mins=Math.max(0,+$('#em_min').value||0),all=document.querySelector('input[name=emode]:checked').value==='all',p=picked($('#em_pick'),'e');
+ if(!t&&!m)return alert('Nhập tiêu đề hoặc nội dung thông báo.');
+ if(!all&&!p.groups.length&&!p.screens.length)return alert('Chọn ít nhất 1 nhóm hoặc 1 màn hình.');
+ const n=all?DB.screens.length:new Set([...p.screens,...DB.screens.filter(s=>p.groups.includes(s.group_id)).map(s=>s.id)]).size;
+ if(!confirm(`Phát thông báo khẩn cấp lên ${all?'TẤT CẢ':''} ${n} màn hình ngay bây giờ?`))return;
+ try{const a=await q(sb.from('alerts').insert({title:t,msg:m,level:$('#em_lv').value,sound:$('#em_snd').value,vol:+$('#em_vol').value,target_all:all,target_groups:all?[]:p.groups,target_screens:all?[]:p.screens,until:mins?new Date(Date.now()+mins*6e4).toISOString():null,created_by_email:me.u}).select().single());
+  DB.alerts.unshift(a);bump();$('#em_modal').close();renderEmBar();renderAlerts();renderScreens()}
+ catch(e){fail(e,'Không phát được')}
+}
+async function stopAlert(id){
+ if(!confirm('Tắt thông báo khẩn cấp này?'))return;
+ try{const r=await q(sb.from('alerts').update({active:false,stopped_at:new Date().toISOString(),stopped_by_email:me.u}).eq('id',id).select().single());const i=DB.alerts.findIndex(x=>x.id===id);if(i>=0)DB.alerts[i]=r;bump();renderEmBar();renderAlerts();renderScreens()}
+ catch(e){fail(e,'Không tắt được')}
+}
+function testAlert(){unlockAudio();const c=audioCtx();const go=()=>playAlert($('#em_lv').value,$('#em_vol').value);if(c&&c.state!=='running')c.resume().then(go);else go()}
+
+/* ================= CÀI ĐẶT ================= */
+function renderSettings(){const s=DB.settings;$('#co_in').value=s.company||'';$('#tk_in').value=s.ticker||'';$('#lay').value=s.lay||'full';$('#sidenote').value=s.sidenote||'';$('#pin_lock').checked=!!s.pin_lock;updateLogoUI()}
+async function saveSettings(){
+ try{const r=await q(sb.from('sig_settings').update({company:$('#co_in').value.trim(),ticker:$('#tk_in').value.trim(),lay:$('#lay').value,sidenote:$('#sidenote').value.trim(),updated_at:new Date().toISOString()}).eq('id',1).select().single());DB.settings=r;bump();alert('Đã lưu cài đặt ✔')}
+ catch(e){fail(e,'Không lưu được')}
+}
+async function setLogo(url){try{DB.settings=await q(sb.from('sig_settings').update({logo:url,updated_at:new Date().toISOString()}).eq('id',1).select().single());bump();updateLogoUI();brandLogo()}catch(e){fail(e,'Không lưu được logo')}}
+$('#logo_in').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#logost').textContent='Đang tải lên...';try{await setLogo(await uploadMedia(f,1200))}catch(x){fail(x,'Không tải được logo')}e.target.value=''};
+function updateLogoUI(){const has=!!DB.settings.logo;$('#logost').textContent=has?'Đã có logo ✔':'Chưa có logo';$('#del_logo').style.display=has?'':'none'}
+function logoTone(src){return new Promise(res=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{try{const w=Math.max(1,Math.min(80,im.naturalWidth)),h=Math.max(1,Math.round(im.naturalHeight*w/im.naturalWidth)),c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(im,0,0,w,h);const d=g.getImageData(0,0,w,h).data;let s=0,n=0;for(let i=0;i<d.length;i+=4){const a=d[i+3]/255;if(a<.3)continue;s+=(.2126*d[i]+.7152*d[i+1]+.0722*d[i+2])*a;n+=a}res(n&&s/n>165?'light':'dark')}catch(e){res('dark')}};im.onerror=()=>res('dark');im.src=src})}
+function brandLogo(){const lg=safeImg(DB.settings.logo),hb=$('#hero_logo_box'),lb=$('#login_lb');
+ if(!lg){hb.hidden=true;lb.hidden=true;$('#login_word').hidden=false;return}
+ $('#hero_logo').src=lg;$('#login_logo').src=lg;hb.hidden=false;lb.hidden=false;$('#login_word').hidden=true;lsSet('sig_logo',lg.length<200000?lg:null);
+ logoTone(lg).then(t=>{[hb,lb].forEach(x=>{x.classList.remove('light','dark');x.classList.add(t)})});
+}
+async function togglePinLock(v){
+ if(v){const {data}=await sb.rpc('has_pin');if(!data){$('#pin_lock').checked=false;return alert('Hãy đặt Mã PIN trước rồi mới bật khóa!')}}
+ try{DB.settings=await q(sb.from('sig_settings').update({pin_lock:!!v}).eq('id',1).select().single());bump()}catch(e){$('#pin_lock').checked=!v;fail(e,'Không lưu được')}
+}
+async function changePin(){
+ const pin=$('#master_pin_in').value.trim();if(!pin)return alert('Vui lòng nhập mã PIN mới');
+ if(pin.length<6)return alert('Mã PIN phải từ 6 ký tự trở lên!');
+ if(/^(\d)\1+$/.test(pin)||'0123456789'.includes(pin)||'9876543210'.includes(pin))return alert('Mã PIN này quá dễ đoán, hãy chọn mã khác!');
+ const {error}=await sb.rpc('set_pin',{p:pin});if(error)return alert('Không lưu được PIN: '+error.message);
+ $('#master_pin_in').value='';alert('Đã lưu Mã PIN (mã hóa bcrypt trên server)!');
+}
+
+/* ================= NGƯỜI DÙNG ================= */
+function openChangePassModal(){['old_pw','new_pw','confirm_pw'].forEach(i=>$('#'+i).value='');$('#change_pass_modal').showModal()}
+async function changeMyPassword(){
+ const o=$('#old_pw').value,n=$('#new_pw').value,c=$('#confirm_pw').value;
+ if(!o||!n)return alert('Vui lòng nhập đầy đủ thông tin!');if(n!==c)return alert('Xác nhận mật khẩu mới không khớp!');if(n.length<8)return alert('Mật khẩu mới phải từ 8 ký tự trở lên!');
+ const re=await sb.auth.signInWithPassword({email:me.u,password:o});if(re.error)return alert('Mật khẩu hiện tại không chính xác!');
+ const {error}=await sb.auth.updateUser({password:n});if(error)return alert('Không đổi được mật khẩu: '+error.message);
+ $('#change_pass_modal').close();alert('Đổi mật khẩu thành công!');
+}
+let profilesCache=[];
+const ROLE_OPTS=[['admin','👑 Admin'],['editor','✏️ Editor'],['creator','➕ Creator'],['none','⛔ Chưa cấp quyền']];
+async function openUserModal(){if(!can('users'))return;$('#user_modal').showModal();await renderUserList()}
+async function renderUserList(){
+ const box=$('#user_list_box');box.innerHTML='<span class="hint">Đang tải...</span>';
+ const {data,error}=await sb.from('profiles').select('id,email,role,is_owner').order('created_at');
+ if(error){box.innerHTML='<span class="hint">Không tải được: '+esc(error.message)+'</span>';return}
+ profilesCache=data||[];
+ box.innerHTML=profilesCache.map((p,i)=>{const self=p.id===me.id,locked=self||p.is_owner;
+  return`<div class="it" style="justify-content:space-between"><div class="t"><b>${esc(p.email)}</b>${p.is_owner?' <span class="tag" style="background:#b8860b;color:#fff;border-color:#b8860b">⭐ OWNER</span>':''}${self?' <span class="tag">BẠN</span>':''}</div><select style="width:auto" ${locked?'disabled':''} onchange="setRole(${i},this.value)">${ROLE_OPTS.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('')}</select>${locked?'':`<button class="sm" style="color:#ff4d4f" onclick="deleteUser(${i})">Gỡ</button>`}</div>`}).join('')||'<span class="hint">Chưa có user</span>';
+}
+async function setRole(i,role){const p=profilesCache[i];if(!p)return;const {data,error}=await sb.from('profiles').update({role}).eq('id',p.id).select('id');if(error||!data||!data.length)alert('Không đổi được quyền'+(error?': '+error.message:''));renderUserList()}
+async function addUser(){
+ const email=$('#new_u_name').value.trim(),p=$('#new_u_pass').value,r=$('#new_u_role').value;
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Email không hợp lệ!');if(p.length<8)return alert('Mật khẩu phải từ 8 ký tự trở lên!');
+ const tmp=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:'sig_tmp_signup'}});
+ const {data,error}=await tmp.auth.signUp({email,password:p});if(error)return alert('Không tạo được user: '+error.message);
+ const uid=data.user&&data.user.id;if(!uid)return alert('Không tạo được user (email có thể đã tồn tại).');
+ const up=await sb.from('profiles').update({role:r}).eq('id',uid).select('id');if(up.error||!up.data||!up.data.length)alert('Đã tạo user nhưng chưa gán được quyền. Hãy chọn quyền trong danh sách.');
+ if(!data.session)alert('Đã tạo user. Nếu Supabase đang bật "Confirm email", user phải xác nhận email trước khi đăng nhập.');
+ $('#new_u_name').value='';$('#new_u_pass').value='';renderUserList();
+}
+async function deleteUser(i){const p=profilesCache[i];if(!p||p.is_owner)return;if(!confirm(`Gỡ toàn bộ quyền của "${p.email}"?`))return;const {data,error}=await sb.from('profiles').update({role:'none'}).eq('id',p.id).select('id');if(error||!data||!data.length)alert('Không gỡ được quyền'+(error?': '+error.message:''));renderUserList()}
+
+/* ================= THƯ VIỆN MEDIA ================= */
+const MEDIA_MAX=50*1024*1024,isVid=n=>/\.(mp4|webm)$/i.test(n||''),fmtSize=b=>!b?'':b>1048576?(b/1048576).toFixed(1)+' MB':Math.ceil(b/1024)+' KB';
+function resizeImage(file,W,q,png){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const r=Math.min(1,W/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);const g=c.getContext('2d');if(!png){g.fillStyle='#000';g.fillRect(0,0,c.width,c.height)}g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(im.src);c.toBlob(b=>b?res(b):rej(new Error('Không đọc được ảnh')),png?'image/png':'image/jpeg',q)};im.onerror=()=>rej(new Error('Không đọc được ảnh'));im.src=URL.createObjectURL(file)})}
+async function uploadMedia(file,maxW){
+ let blob=file,ext=(file.name.split('.').pop()||'bin').toLowerCase();
+ if(file.type.startsWith('image/')&&file.type!=='image/gif'){const png=!!maxW&&file.type==='image/png';blob=await resizeImage(file,maxW||2560,.88,png);ext=png?'png':'jpg'}
+ if(blob.size>MEDIA_MAX)throw new Error('file lớn hơn 50 MB');
+ const base=file.name.replace(/\.[^.]+$/,'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[đĐ]/g,'d').replace(/[^a-zA-Z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,50)||'file';
+ const name=`${Date.now()}_${base}.${ext}`;
+ const {error}=await sb.storage.from('media').upload(name,blob,{contentType:blob.type||file.type,cacheControl:'31536000',upsert:false});if(error)throw error;
+ return sb.storage.from('media').getPublicUrl(name).data.publicUrl;
+}
+let mediaPick=null,mediaFilter='all',mediaItems=[];
+async function openMedia(kind,cb){if(!can('create'))return;mediaPick=cb||null;mediaFilter=kind||'all';$('#media_title').textContent=cb?(kind==='video'?'Chọn video từ thư viện':'Chọn ảnh từ thư viện'):'📚 Thư viện media';$('#media_modal').showModal();await renderMedia()}
+async function renderMedia(){
+ const box=$('#media_grid');box.innerHTML='<p class="hint">Đang tải...</p>';
+ const {data,error}=await sb.storage.from('media').list('',{limit:1000,sortBy:{column:'created_at',order:'desc'}});
+ if(error){box.innerHTML='<p class="hint">Lỗi: '+esc(error.message)+'</p>';return}
+ mediaItems=(data||[]).filter(f=>f.id&&f.name&&!f.name.startsWith('.')).filter(f=>mediaFilter==='all'||(mediaFilter==='video')===isVid(f.name)).map(f=>({name:f.name,size:(f.metadata&&f.metadata.size)||0,url:sb.storage.from('media').getPublicUrl(f.name).data.publicUrl}));
+ const used=new Set([DB.settings.logo,...DB.slides.flatMap(s=>[s.data&&s.data.img,s.data&&s.data.vurl])].filter(Boolean));
+ box.innerHTML=mediaItems.map((m,i)=>`<div class="mi">${isVid(m.name)?'<div class="mth">🎬</div>':`<img class="mth" loading="lazy" src="${esc(m.url)}" alt="">`}<div class="mn" title="${esc(m.name)}">${esc(m.name.replace(/^\d+_/,''))}</div><div class="hint" style="font-size:11px">${fmtSize(m.size)}${used.has(m.url)?' · <b>đang dùng</b>':''}</div><div class="row" style="gap:4px;margin-top:4px">${mediaPick?`<button type="button" class="sm p" onclick="pickMedia(${i})">Chọn</button>`:''}<button type="button" class="sm" onclick="copyMedia(${i})">Link</button>${can('edit')?`<button type="button" class="sm" style="color:#ff4d4f" onclick="delMedia(${i})">Xóa</button>`:''}</div></div>`).join('')||'<p class="hint">Thư viện trống.</p>';
+}
+function pickMedia(i){const m=mediaItems[i];if(!m||!mediaPick)return;mediaPick(m.url);$('#media_modal').close()}
+function copyMedia(i){const m=mediaItems[i];if(!m)return;(navigator.clipboard?navigator.clipboard.writeText(m.url):Promise.reject()).then(()=>alert('Đã copy link'),()=>prompt('Link file:',m.url))}
+async function delMedia(i){const m=mediaItems[i];if(!m)return;const inUse=DB.slides.some(s=>s.data&&(s.data.img===m.url||s.data.vurl===m.url));if(!confirm((inUse?'⚠️ File này ĐANG ĐƯỢC DÙNG – xóa sẽ làm nội dung bị trống.\n':'')+'Xóa vĩnh viễn "'+m.name+'"?'))return;const {error}=await sb.storage.from('media').remove([m.name]);if(error)alert('Không xóa được: '+error.message);renderMedia()}
+async function uploadFromLibrary(input){const files=[...input.files];input.value='';const st=$('#media_status');for(let k=0;k<files.length;k++){st.textContent=`Đang tải lên ${k+1}/${files.length}: ${files[k].name}...`;try{await uploadMedia(files[k])}catch(e){alert(files[k].name+': '+(e.message||e))}}st.textContent='Xong ✔';renderMedia()}
+$('#img').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#imgst').textContent='Đang tải lên thư viện...';try{imgData=await uploadMedia(f);$('#imgst').textContent='Đã tải lên ✔';$('#img_clear').style.display=''}catch(x){$('#imgst').textContent='';fail(x,'Không tải ảnh lên được')}};
+$('#vfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#vurl').value='(đang tải lên: '+f.name+')';try{$('#vurl').value=await uploadMedia(f)}catch(x){$('#vurl').value='';fail(x,'Không tải video lên được')}};
+function pickImg(){openMedia('image',u=>{imgData=u;$('#imgst').textContent='Đã chọn từ thư viện ✔';$('#img_clear').style.display=''})}
+function pickVid(){openMedia('video',u=>{$('#vurl').value=u})}
+
+/* ================= KHỞI ĐỘNG ================= */
+(()=>{const lg=lsGet('sig_logo');if(lg&&safeImg(lg)){$('#login_logo').src=lg;$('#login_lb').hidden=false;$('#login_word').hidden=true}})();
+if(!SB_READY){showLogin('⚠️ Chưa cấu hình kết nối: hãy điền url và key của project Supabase vào file config.js (xem README.md).');$('#l_btn').disabled=true}else restoreSession();
+// Trạng thái màn hình cập nhật mỗi 15 giây; dữ liệu khác mỗi 60 giây (khi tab đang mở)
+setInterval(()=>{if(me&&!document.hidden)loadScreens()},15000);
+setInterval(()=>{if(me&&!document.hidden&&!PL.running&&!document.querySelector('dialog[open]')&&!saving&&!edit)loadAll()},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&me)loadScreens()});
+</script>
+</body></html>

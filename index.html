@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARON Signage</title>
+<script>
+// Tivi đã từng ghép nối trên máy này → vào thẳng trang phát; còn lại → trang quản trị
+try{location.replace(localStorage.getItem('sig_screen_token')||/[?&]tv=1/.test(location.search)?'player.html':'admin.html')}catch(e){location.replace('admin.html')}
+</script></head>
+<body style="font-family:system-ui;padding:40px;text-align:center"><a href="admin.html">Trang quản trị</a> · <a href="player.html">Trang Tivi</a></body></html>
