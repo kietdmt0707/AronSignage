@@ -6,8 +6,8 @@
 // Publishable key được phép để công khai: dữ liệu được bảo vệ bằng RLS trên server.
 // =====================================================================
 window.SIGNAGE_CONFIG = {
-  url: '',   // VD: 'https://abcdefghijklmnop.supabase.co'
-  key: '',   // VD: 'sb_publishable_xxxxxxxxxxxxxxxx'
+  url: 'https://mgydhkatkujlhozrixip.supabase.co',   // VD: 'https://abcdefghijklmnop.supabase.co'
+  key: 'sb_publishable_EvCI8rx77Ayff9B-GrsFiA_tXHfAyuG',   // VD: 'sb_publishable_xxxxxxxxxxxxxxxx'
 
   // Project CŨ – chỉ dùng cho nút "📦 Chép thư viện từ app cũ" (tab Cài đặt chung).
   // Chuyển xong có thể xóa khối này.
