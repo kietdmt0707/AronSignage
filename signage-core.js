@@ -2,7 +2,7 @@
    ARON Signage v2 – Lõi dùng chung cho player.html và admin.html
    (hiển thị slide, lịch ICS, thời tiết, KPI, âm thanh khẩn cấp, bộ nhớ offline)
    ===================================================================== */
-const APP_VERSION='2.0.0';
+const APP_VERSION='2.1.0';
 // Thông tin kết nối lấy từ config.js (mỗi môi trường/project Supabase một file riêng)
 const CFG=window.SIGNAGE_CONFIG||{};
 const SB_URL=String(CFG.url||'').replace(/\/+$/,'');
@@ -13,7 +13,7 @@ const BUMP_CHANNEL='aron-signage-bump';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KINDS={birthday:['🎂','Chúc mừng sinh nhật','#ff7eb3,#ff758c'],kickoff:['🚀','Khởi động dự án','#4facfe,#00c6fb'],golive:['✅','Chúc mừng Go-live','#43e97b,#1a9e8f'],client:['🤝','Chào đón khách hàng mới','#fa709a,#f6a623'],team:['🏕️','Team building','#f093fb,#7b5cf0'],trip:['🏖️','Nghỉ dưỡng','#30cfd0,#330867'],sport:['⚽','Sự kiện thể thao','#f7971e,#e0412f'],other:['🎉','Thông báo','#667eea,#764ba2']};
-const LBL={welcome:'Chào khách',meeting:'Lịch họp',event:'Sự kiện',video:'Video',image:'Ảnh',text:'Thông báo',countdown:'Đếm ngược',clock:'Đồng hồ',calendar:'Lịch tự động',room:'Phòng họp',weather:'Thời tiết',kpi:'KPI',web:'Trang web'};
+const LBL={welcome:'Chào khách',meeting:'Lịch họp',event:'Sự kiện',video:'Video',image:'Ảnh',text:'Thông báo',countdown:'Đếm ngược',clock:'Đồng hồ',calendar:'Lịch tự động',room:'Phòng họp',weather:'Thời tiết',kpi:'KPI',web:'Trang web',birthday:'Sinh nhật',qr:'Mã QR',news:'Tin tức'};
 
 function safeImg(u){
  if(typeof u!=='string')return '';
@@ -196,7 +196,7 @@ async function loadKPI(s,tok){
  const box=$('#xbox_'+tok);if(!box)return;
  try{
   let rows,r=null;
-  if(s.feed){r=await feedText(s.feed);rows=kpiRows(parseCSV(r.data))}
+  if(s.feed){r=await feedText(s.feed);rows=kpiRows(parseFeedRows(r.data))}
   else rows=kpiRows((s.extra||'').split('\n').map(l=>l.split('|')));
   if(tok!==renderTok)return;
   box.innerHTML=(rows.length?kpiHTML(rows):'<div class="mid">Chưa có dữ liệu KPI</div>')+(r?updLine(r):'');
@@ -252,14 +252,90 @@ async function loadRoom(s,tok){
  }catch(e){if(tok===renderTok)box.innerHTML=`<div class="room-name">${esc(s.title||'Phòng họp')}</div><div class="mid">⚠️ Không tải được lịch phòng</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
 }
 
+/* ================= Dữ liệu dạng bảng: CSV hoặc JSON (Oracle ORDS / BI Publisher / API) ================= */
+function parseFeedRows(t){
+ t=String(t||'');
+ if(/^\s*[\[{]/.test(t)){try{let j=JSON.parse(t);if(!Array.isArray(j))j=j.items||j.data||j.rows||j.records||[];
+  return j.map(o=>Array.isArray(o)?o:(o&&typeof o==='object'?Object.values(o):[o])).map(r=>r.map(v=>v==null?'':String(v)))}catch(e){}}
+ return parseCSV(t.replace(/^﻿/,''));
+}
+// Bỏ qua slide không có dữ liệu (VD: hôm nay không ai sinh nhật) nếu còn slide khác
+function skipEmpty(tok){
+ if(tok!==renderTok||PL.preview)return false;const n=activeSlides(PL.slides).length;
+ PL.skipN=(PL.skipN||0)+1;if(n<2||PL.skipN>=n)return false;
+ if(PLOG.cur)PLOG.cur.skip=true;
+ setTimeout(()=>{if(tok===renderTok)plShow()},200);return true;
+}
+
+/* ================= SINH NHẬT (Google Sheet: Họ tên | Ngày sinh | Phòng ban | Ảnh) ================= */
+function parseDM(v){v=String(v||'').trim();let m;
+ if((m=v.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/)))return{d:+m[3],m:+m[2]};
+ if((m=v.match(/^(\d{1,2})[-/.](\d{1,2})(?:[-/.](\d{2,4}))?/)))return{d:+m[1],m:+m[2]};
+ return null}
+function birthdayList(rows,mode){
+ const now=NOW(),y=now.getFullYear(),t0=new Date(y,now.getMonth(),now.getDate()),out=[];
+ for(const r of rows){
+  const name=String(r[0]||'').trim(),dm=parseDM(r[1]);if(!name||!dm||dm.m<1||dm.m>12||dm.d<1||dm.d>31)continue;
+  let dt=new Date(y,dm.m-1,dm.d);if(mode==='week'&&dt<t0)dt=new Date(y+1,dm.m-1,dm.d);
+  const diff=Math.round((dt-t0)/864e5);
+  const ok=mode==='month'?dm.m===now.getMonth()+1:mode==='week'?diff>=0&&diff<7:diff===0;
+  if(ok)out.push({name,dept:String(r[2]||'').trim(),img:safeImg(String(r[3]||'').trim()),d:dm.d,m:dm.m,today:diff===0,diff});
+ }
+ return out.sort((a,b)=>mode==='month'?a.d-b.d:a.diff-b.diff);
+}
+async function loadBirthday(s,tok){
+ const box=$('#xbox_'+tok);if(!box)return;
+ try{
+  let rows,r=null;
+  if(s.feed){r=await feedText(s.feed);rows=parseFeedRows(r.data)}else rows=(s.extra||'').split('\n').map(l=>l.split('|'));
+  if(tok!==renderTok)return;
+  const mode=s.bmode||'day',L=birthdayList(rows,mode),now=NOW();
+  const head=mode==='month'?`Sinh nhật tháng ${now.getMonth()+1}`:mode==='week'?'Sinh nhật 7 ngày tới':'Chúc mừng sinh nhật';
+  if(!L.length){if(skipEmpty(tok))return;box.innerHTML=`<div class="bd-h">🎂 ${esc(s.title||head)}</div><div class="mid" style="margin-top:2vw">${mode==='day'?'Hôm nay không có sinh nhật':'Không có sinh nhật trong thời gian này'}</div>`+(r?updLine(r):'');return}
+  const big=L.length<=3,ini=n=>esc(n.split(/\s+/).slice(-1)[0].slice(0,1).toUpperCase());
+  box.innerHTML=`<div class="bd-h">🎂 ${esc(s.title||head)}</div>${s.sub?`<div class="mid" style="margin-top:.5vw">${esc(s.sub)}</div>`:''}
+   <div class="bd-grid ${big?'big':''}">${L.slice(0,12).map(p=>`<div class="bd ${p.today?'today':''}">${p.img?`<div class="bd-av" style="background-image:url(${cachedURL(p.img)})"></div>`:`<div class="bd-av">${ini(p.name)}</div>`}<div class="bd-n">${esc(p.name)}</div>${p.dept?`<div class="bd-d">${esc(p.dept)}</div>`:''}<div class="bd-t">${p.today?'🎉 Hôm nay':String(p.d).padStart(2,'0')+'/'+String(p.m).padStart(2,'0')}</div></div>`).join('')}</div>
+   ${L.length>12?`<div class="sm2">và ${L.length-12} người khác</div>`:''}`;
+ }catch(e){if(tok===renderTok)box.innerHTML=`<div class="bd-h">🎂 Sinh nhật</div><div class="mid">⚠️ Không tải được danh sách</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
+}
+
+/* ================= TIN TỨC (RSS) ================= */
+async function loadNews(s,tok){
+ const box=$('#xbox_'+tok);if(!box)return;
+ try{
+  if(!s.feed)throw new Error('Chưa cấu hình link RSS');
+  const r=await feedText(s.feed);if(tok!==renderTok)return;
+  let items=[];try{items=JSON.parse(r.data)}catch(e){throw new Error('Dữ liệu RSS không hợp lệ')}
+  const n=Math.max(3,Math.min(8,+s.count||5));items=(items||[]).slice(0,n);
+  if(!items.length){if(skipEmpty(tok))return;box.innerHTML='<div class="mid">Chưa có tin mới</div>';return}
+  const t=d=>{const x=Date.parse(d);if(isNaN(x))return'';const z=new Date(x),m=Math.round((NOW()-z)/6e4);return m>=0&&m<60?`${Math.max(1,m)} phút trước`:m>=0&&m<24*60?`${Math.round(m/60)} giờ trước`:`${hhmm(z)} · ${String(z.getDate()).padStart(2,'0')}/${String(z.getMonth()+1).padStart(2,'0')}`};
+  const top=items[0],rest=items.slice(1);
+  box.innerHTML=`<div class="nw-h">📰 ${esc(s.title||'Tin tức')}</div><div class="nw">
+   <div class="nw-top">${top.img?`<div class="nw-img" style="background-image:url('${esc(top.img)}')"></div>`:''}<div class="nw-tt">${esc(top.t)}</div><div class="nw-d">${esc(t(top.d))}</div></div>
+   <div class="nw-list">${rest.map(i=>`<div class="nw-i"><b>${esc(i.t)}</b><span>${esc(t(i.d))}</span></div>`).join('')}</div></div>${updLine(r)}`;
+ }catch(e){if(tok===renderTok)box.innerHTML=`<div class="mid">⚠️ Không tải được tin tức</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
+}
+
+/* ================= MÃ QR ================= */
+function qrSVG(text){
+ if(!window.qrcode)return'<div class="mid">⚠️ Thiếu thư viện QR</div>';
+ if(!text)return'<div class="mid">Chưa nhập nội dung mã QR</div>';
+ try{qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];const q=qrcode(0,'M');q.addData(String(text));q.make();return q.createSvgTag({cellSize:8,margin:2,scalable:true})}
+ catch(e){return'<div class="mid">⚠️ Nội dung quá dài để tạo mã QR</div>'}
+}
+
 /* ================= HIỂN THỊ 1 SLIDE ================= */
 function html(s,tok){
  if(s.type==='room')return`<div class="sl room-free" style="background:var(--sN)"><div id="xbox_${tok}" class="room"><div class="mid">Đang tải lịch phòng...</div></div></div>`;
  if(s.type==='web'){const u=safeWeb(s.wurl);if(!u)return'<div class="sl"><div class="mid">Chưa có link trang web</div></div>';
   const z=Math.min(300,Math.max(25,+s.zoom||100))/100;
   return`<div class="sl" style="padding:0;background:#fff;animation-duration:.4s"><iframe src="${esc(u)}" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms" style="position:absolute;top:0;left:0;border:0;width:${100/z}%;height:${100/z}%;transform:scale(${z});transform-origin:0 0"></iframe></div>`}
+ if(s.type==='birthday'){const k=KINDS.birthday,im=safeImg(s.img);return`<div class="sl ${im&&s.imgov!==false?'ov':''}" style="${im?`background-image:url(${cachedURL(im)})`:`background:linear-gradient(135deg,${k[2]})`}"><div id="xbox_${tok}" class="bdx"><div class="mid">Đang tải danh sách sinh nhật...</div></div></div>`}
+ if(s.type==='news')return`<div class="sl" style="background:var(--sN);padding:3vw 4vw"><div id="xbox_${tok}" style="width:100%"><div class="mid">Đang tải tin tức...</div></div></div>`;
+ if(s.type==='qr'){const im=safeImg(s.img);return`<div class="sl ${im&&s.imgov!==false?'ov':''}" style="${im?`background-image:url(${cachedURL(im)})`:'background:var(--sA)'}"><div class="qr-wrap"><div class="qr-txt"><div class="big" style="font-size:4.6vw">${esc(s.title)}</div>${s.sub?`<div class="mid">${esc(s.sub)}</div>`:''}${s.extra?`<div class="sm2" style="white-space:pre-line">${esc(s.extra)}</div>`:''}<div class="qr-hint">📱 Quét mã bằng camera điện thoại</div></div><div class="qr-box">${qrSVG(s.qrurl||'')}</div></div></div>`}
  return htmlBase(s,tok);
 }
+
 
 /* ================= TRÌNH PHÁT (dùng chung cho Tivi và xem trước) ================= */
 const PL={dirty:false,slides:[],settings:{},alert:null,preview:null,running:false,cur:0,tm:null,onNow:null,offline:false};
@@ -305,21 +381,35 @@ function plShow(){
  if(s.type==='calendar')loadCalendar(s,tok);
  if(s.type==='weather')loadWeather(s,tok);
  if(s.type==='kpi')loadKPI(s,tok);
+ if(s.type==='birthday')loadBirthday(s,tok);
+ if(s.type==='news')loadNews(s,tok);
  if(s.type==='room'){loadRoom(s,tok);const iv=setInterval(()=>{if(tok!==renderTok)return clearInterval(iv);loadRoom(s,tok)},60000)}
  if(s.type==='video'){
-  const v=$('#v');if(v){v.onended=v.onerror=()=>{if(tok===renderTok)plShow()}}
-  const sec=(s.dur&&s.dur>0)?s.dur:(v?600:300);PL.tm=setTimeout(plShow,sec*1000);
+  const v=$('#v');if(v){v.onended=v.onerror=()=>{if(tok===renderTok){PL.skipN=0;plShow()}}}
+  const sec=(s.dur&&s.dur>0)?s.dur:(v?600:300);PL.tm=setTimeout(()=>{PL.skipN=0;plShow()},sec*1000);
   if(window.YT&&window.YT.Player&&$('#yt_player')){
-   try{new YT.Player('yt_player',{events:{onReady:e=>{try{e.target.unloadModule('captions');e.target.unloadModule('cc')}catch(_){}},onStateChange:e=>{if(e.data===0&&tok===renderTok)plShow()},onError:e=>{console.warn('YouTube lỗi',e.data);setTimeout(()=>{if(tok===renderTok)plShow()},3000)}}})}catch(_){}
+   try{new YT.Player('yt_player',{events:{onReady:e=>{try{e.target.unloadModule('captions');e.target.unloadModule('cc')}catch(_){}},onStateChange:e=>{if(e.data===0&&tok===renderTok){PL.skipN=0;plShow()}},onError:e=>{console.warn('YouTube lỗi',e.data);setTimeout(()=>{if(tok===renderTok)plShow()},3000)}}})}catch(_){}
   }
  }else{
   const secs=Math.max(1,+s.dur||10);
   if(L.length>1||PL.preview)setTimeout(()=>{if(tok!==renderTok)return;pg.style.transition=`width ${secs}s linear`;pg.style.width='100%'},50);
-  const again=()=>{if(L.length===1&&!PL.dirty&&!PL.preview&&!['clock','countdown','calendar','weather','kpi','room'].includes(s.type)&&activeSlides(PL.slides).length===1){PL.tm=setTimeout(again,secs*1000);return}plShow()};
+  const again=()=>{PL.skipN=0;if(L.length===1&&!PL.dirty&&!PL.preview&&!['clock','countdown','calendar','weather','kpi','room','birthday','news'].includes(s.type)&&activeSlides(PL.slides).length===1){PL.tm=setTimeout(again,secs*1000);return}plShow()};
   PL.tm=setTimeout(again,secs*1000);
  }
 }
-function report(s){try{PL.onNow&&PL.onNow(s)}catch(_){}}
+// Nhật ký phát (proof-of-play): mỗi lần đổi slide → đóng bản ghi trước, mở bản ghi mới
+const PLOG={cur:null,last:null,done:[]};
+function logClose(){const c=PLOG.cur;if(!c)return;c.dur=Math.max(0,Math.round((Date.now()-c._t)/1000));delete c._t;if(!c.skip&&(c.dur>=1||!c.cont))PLOG.done.push(c);delete c.skip;if(PLOG.done.length>500)PLOG.done.splice(0,PLOG.done.length-500);PLOG.cur=null}
+// Lấy các bản ghi đã xong để gửi lên server; slide đang phát được tách thành bản ghi mới (không mất thời lượng)
+function plTakeLogs(){const live=PLOG.cur&&PLOG.last;logClose();if(live&&PL.running&&!PL.preview)PLOG.cur=Object.assign({},PLOG.last,{at:NOW().toISOString(),_t:Date.now(),cont:true});const d=PLOG.done;PLOG.done=[];return d}
+function plReturnLogs(d){PLOG.done=d.concat(PLOG.done).slice(-500)}
+function report(s){
+ if(!PL.preview){const id=s?(s.type==='alert'?PL.alert&&PL.alert.id:s.id):null;
+  if(!(s&&s.type==='alert'&&PLOG.cur&&PLOG.cur.id===id)){logClose();
+   if(s&&id){PLOG.last={id,type:s.type,t:String(s.title||s.wname||LBL[s.type]||'').slice(0,120)};PLOG.cur=Object.assign({},PLOG.last,{at:NOW().toISOString(),_t:Date.now()})}else PLOG.last=null}}
+ try{PL.onNow&&PL.onNow(s)}catch(_){}
+}
+
 function renderSide(list){
  const ms=activeSlides(list).filter(s=>s.type==='meeting').flatMap(s=>(s.extra||'').split('\n').filter(x=>x.trim())).sort(),sn=PL.settings.sidenote;
  $('#side').innerHTML='<div class="c" id="sc"></div><div class="d" id="sd"></div>'+(ms.length?'<h4>📅 Lịch họp hôm nay</h4>'+ms.map(l=>{const p=l.split('|').map(x=>x.trim());return`<div class="m"><b>${esc(p[0])}</b>${esc(p[1])}<i>${esc(p[2])}</i></div>`}).join(''):'')+(sn?`<div class="n">${esc(sn)}</div>`:'');tick();
@@ -335,6 +425,7 @@ function plStart(opt){
  unlockAudio();plShow();
 }
 function plStop(){
+ if(!PL.preview)logClose();PLOG.last=null;
  PL.running=false;PL.preview=null;renderTok++;stopEmergencySound();clearTimeout(PL.tm);if(cdInt){clearInterval(cdInt);cdInt=null}
  $('#player').hidden=true;$('#stage').innerHTML='';$('#emg').hidden=true;
  if(document.fullscreenElement)try{document.exitFullscreen()}catch(_){}

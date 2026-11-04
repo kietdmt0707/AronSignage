@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js" integrity="sha256-LbKRLxaTmjshtHKYCnradGszpqQHCLxVXLC+JVxutbE=" crossorigin="anonymous"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script src="config.js"></script>
+<script src="vendor/qrcode.js"></script>
 <script src="signage-core.js"></script>
 <style>
  html,body{background:#0a0930;overflow:hidden}
@@ -97,7 +98,8 @@ PL.onNow=s=>{nowPlaying=s?{id:s.id||null,type:s.type,t:String(s.title||s.wname||
 async function ping(){
  if(pinging)return;pinging=true;
  try{
-  let r=await rpc('screen_ping',{p_token:token,p_info:info()});
+  const logs=plTakeLogs();let r;
+  try{r=await rpc('screen_ping',{p_token:token,p_info:info(),p_logs:logs})}catch(e){plReturnLogs(logs);throw e}
   if(r.now)syncClock(r.now);
   if(r.status==='unknown')r=await rpc('screen_register',{p_token:token});
   lastOk=Date.now();setOffline(false);

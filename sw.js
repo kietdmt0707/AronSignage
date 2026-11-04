@@ -1,6 +1,6 @@
 // ARON Signage v2 – Service Worker: mở được app khi mất mạng (chỉ hoạt động qua https)
-const CACHE = 'aron-signage-v2.0.0';
-const SHELL = ['./player.html', './admin.html', './signage-core.js', './signage.css', './config.js'];
+const CACHE = 'aron-signage-v2.1.0';
+const SHELL = ['./player.html', './admin.html', './signage-core.js', './signage.css', './config.js', './vendor/qrcode.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {}));
   self.skipWaiting();

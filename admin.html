@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js" integrity="sha256-LbKRLxaTmjshtHKYCnradGszpqQHCLxVXLC+JVxutbE=" crossorigin="anonymous"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script src="config.js"></script>
+<script src="vendor/qrcode.js"></script>
 <script src="signage-core.js"></script>
 <style>
  .wrap{max-width:1280px}
@@ -42,11 +43,30 @@
  #err_bar{background:#fde2e1;color:#b42318;border:1px solid #f5b5b0}
  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.toolbar select,.toolbar input{width:auto;flex:1 1 180px}
  .code-in{font-size:30px;letter-spacing:10px;text-align:center;font-weight:800}
+ table.tb{width:100%;border-collapse:collapse;font-size:13px}table.tb th,table.tb td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}table.tb th{color:var(--mu);font-weight:600;font-size:12px}table.tb td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+ .bars{display:flex;align-items:flex-end;gap:4px;height:140px;padding:8px 0;border-bottom:1px solid var(--bd);overflow-x:auto}
+ .bars .b{flex:1 0 18px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:10px;color:var(--mu)}
+ .bars .b i{display:block;width:70%;background:linear-gradient(180deg,var(--orange2),var(--orange));border-radius:4px 4px 0 0;min-height:2px}
+ .cal{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr));border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:12px;background:var(--card)}
+ .cal .hd{padding:8px 4px;text-align:center;font-weight:700;background:var(--bg);border-bottom:1px solid var(--bd)}.cal .hd.today{color:var(--orange);background:rgba(255,122,0,.08)}
+ .cal .ad{padding:4px;border-bottom:1px solid var(--bd);border-left:1px solid var(--bd);min-height:34px;display:flex;flex-direction:column;gap:3px}
+ .cal .lbl{padding:4px;color:var(--mu);border-bottom:1px solid var(--bd);font-size:11px}
+ .cal .col{position:relative;border-left:1px solid var(--bd)}.cal .col.today{background:rgba(255,122,0,.04)}
+ .cal .hr{height:36px;border-bottom:1px dashed var(--bd);box-sizing:border-box}.cal .hl{height:36px;color:var(--mu);font-size:11px;padding:2px 4px;box-sizing:border-box;border-bottom:1px dashed var(--bd)}
+ .ev{position:absolute;border-radius:6px;padding:2px 5px;font-size:11px;line-height:1.25;overflow:hidden;color:#fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.4)}
+ .chipev{border-radius:6px;padding:2px 6px;font-size:11px;color:#fff;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .ev.pend,.chipev.pend{opacity:.6;background-image:repeating-linear-gradient(45deg,transparent 0 6px,rgba(255,255,255,.25) 6px 12px)}
+ .nowline{position:absolute;left:0;right:0;height:2px;background:#d92d20;z-index:3}
+ .au{display:flex;gap:10px;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:13px;align-items:flex-start}.au .w{flex:0 0 120px;color:var(--mu);font-size:12px}.au .d{flex:1;min-width:0}.au .d small{color:var(--mu)}
+ .au .ac{font-weight:700}.au .ac.INSERT{color:#1a9e5a}.au .ac.UPDATE{color:#1f4fd1}.au .ac.DELETE{color:#d92d20}
+ #toast{position:fixed;right:16px;bottom:16px;z-index:120;display:flex;flex-direction:column;gap:8px}#toast div{background:#b42318;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:360px;font-size:14px}
+ #off_bar{background:#fde2e1;color:#b42318;border:1px solid #f5b5b0;margin-bottom:12px}
+
 </style>
 </head><body>
 
 <div class="wrap" id="main_wrap" hidden>
- <header class="hero"><div class="hero-l"><div class="hero-logo" id="hero_logo_box" hidden><img id="hero_logo" alt="Logo"></div><div><h1>Quản lý màn hình nội bộ</h1><span class="ribbon">ARON SIGNAGE v2</span></div></div><div class="hero-r">
+ <header class="hero"><div class="hero-l"><div class="hero-logo" id="hero_logo_box" hidden><img id="hero_logo" alt="Logo" onerror="this.closest('.hero-logo').hidden=true"></div><div><h1>Quản lý màn hình nội bộ</h1><span class="ribbon">ARON SIGNAGE v2</span></div></div><div class="hero-r">
   <div class="hero-top">
    <span id="cloud_badge" class="tag" style="font-size:12px;cursor:pointer" onclick="loadAll()" title="Bấm để tải lại">☁️ Đang kết nối...</span>
    <div class="umenu" id="umenu">
@@ -74,16 +94,20 @@
  <nav class="tabs" id="tabs">
   <button data-tab="screens" class="on">📺 Màn hình <span class="cnt" id="cnt_screens">0</span></button>
   <button data-tab="content">🗂 Nội dung <span class="cnt" id="cnt_slides">0</span></button>
+  <button data-tab="cal">📅 Lịch phát</button>
+  <button data-tab="report">📊 Báo cáo</button>
   <button data-tab="alerts">🚨 Khẩn cấp</button>
+  <button data-tab="audit" id="tab_audit">📝 Nhật ký</button>
   <button data-tab="settings" id="tab_settings">⚙️ Cài đặt chung</button>
  </nav>
 
  <!-- ============ MÀN HÌNH ============ -->
  <section class="pane" id="pane_screens">
+  <div id="off_bar" class="banner" hidden></div>
   <div class="stats" id="stats"></div>
   <div class="row" style="margin:14px 0 10px;justify-content:space-between">
    <div class="chips" id="group_chips"></div>
-   <div class="row"><button class="sm" id="btn_groups" onclick="openGroups()">🗂 Quản lý nhóm</button><button class="sm" onclick="loadScreens()">🔄 Làm mới</button></div>
+   <div class="row"><button class="sm" id="btn_groups" onclick="openGroups()">🗂 Quản lý nhóm</button><button class="sm" id="btn_notify" onclick="enableNotify()">🔔 Báo khi Tivi mất kết nối</button><button class="sm" onclick="loadScreens()">🔄 Làm mới</button></div>
   </div>
   <div class="sgrid" id="screen_grid"></div>
  </section>
@@ -103,7 +127,7 @@
    <div class="card" id="add_card"><h2 id="ft">Thêm nội dung</h2>
     <label>Loại</label><select id="type" onchange="fields()">
      <option value="welcome">👋 Chào đón khách</option><option value="meeting">📅 Lịch họp hôm nay (nhập tay)</option>
-     <option value="event">🎉 Banner sự kiện</option><option value="video">🎬 Video</option><option value="image">🖼️ Ảnh (toàn màn hình)</option><option value="text">📢 Thông báo chữ</option><option value="countdown">⏳ Đếm ngược sự kiện</option><option value="clock">🕒 Đồng hồ &amp; ngày</option><option value="calendar">🗓️ Lịch họp tự động (Google/Outlook)</option><option value="room">🚪 Màn hình cửa phòng họp (Trống/Đang họp)</option><option value="weather">🌤️ Thời tiết</option><option value="kpi">📊 KPI / Chỉ số</option><option value="web">🌐 Trang web / Power BI / Google Slides</option></select>
+     <option value="event">🎉 Banner sự kiện</option><option value="video">🎬 Video</option><option value="image">🖼️ Ảnh (toàn màn hình)</option><option value="text">📢 Thông báo chữ</option><option value="countdown">⏳ Đếm ngược sự kiện</option><option value="clock">🕒 Đồng hồ &amp; ngày</option><option value="calendar">🗓️ Lịch họp tự động (Google/Outlook)</option><option value="room">🚪 Màn hình cửa phòng họp (Trống/Đang họp)</option><option value="weather">🌤️ Thời tiết</option><option value="kpi">📊 KPI / Chỉ số</option><option value="web">🌐 Trang web / Power BI / Google Slides</option><option value="birthday">🎂 Sinh nhật nhân viên (tự động)</option><option value="qr">🔳 Mã QR (đăng ký, khảo sát, wifi…)</option><option value="news">📰 Tin tức (RSS)</option></select>
     <div id="kindbox"><label>Loại sự kiện</label><select id="kind"></select></div>
     <div id="tbox"><label id="tl">Tiêu đề</label><input id="title"></div>
     <div id="sbox"><label id="sl">Phụ đề</label><input id="sub"></div>
@@ -120,7 +144,19 @@
     <div id="cbox"><label>Thời điểm diễn ra (cho Đếm ngược)</label><input id="target" type="datetime-local"></div>
     <div id="calbox"><label>Link lịch ICS (Google Calendar / Outlook)</label><input id="icsurl" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"><span class="hint">Google Calendar: Cài đặt lịch → "Địa chỉ bí mật ở định dạng iCal". Outlook: Lịch → Lịch được chia sẻ → Xuất bản lịch → link ICS. Link được cất riêng, Tivi không xem được; màn hình chỉ hiện giờ, tiêu đề, phòng.</span></div>
     <div id="wbox"><label>Thành phố</label><input id="wcity" placeholder="VD: Hồ Chí Minh, Hà Nội, Đà Nẵng"></div>
-    <div id="kpibox"><label>Hoặc lấy tự động từ Google Sheet (CSV)</label><input id="kpiurl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"><span class="hint">Google Sheet → Tệp → Chia sẻ → Xuất bản lên web → CSV. Các cột: Tên | Giá trị | Mục tiêu | Đơn vị. Tự cập nhật mỗi 10 phút.</span></div>
+    <div id="kpibox"><label>Nguồn dữ liệu KPI</label><select id="kpisrc" onchange="kpiSrc();fields()"><option value="manual">✍️ Nhập tay</option><option value="sheet">📗 Google Sheet (Xuất bản lên web dạng CSV)</option><option value="custom">🔌 Nguồn tùy chỉnh – Oracle BI Publisher / ORDS / API (CSV hoặc JSON)</option></select>
+     <div id="kpiurlbox"><label>Link dữ liệu</label><input id="kpiurl" placeholder="https://..."></div>
+     <div id="kpiauth" class="grid" style="gap:10px"><div><label>Tài khoản (nếu nguồn cần đăng nhập)</label><input id="kpiuser" autocomplete="off" placeholder="VD: signage_report"></div><div><label>Mật khẩu</label><input id="kpipass" type="password" autocomplete="new-password" placeholder="Để trống = giữ mật khẩu đã lưu"></div></div>
+     <span class="hint" id="kpihint"></span></div>
+    <div id="bdbox"><label>Link Google Sheet danh sách nhân viên (CSV)</label><input id="bdurl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+     <span class="hint">Các cột: <b>Họ tên | Ngày sinh | Phòng ban | Link ảnh (tùy chọn)</b>. Ngày sinh dạng 25/12, 25/12/1990 hoặc 1990-12-25. Google Sheet → Tệp → Chia sẻ → Xuất bản lên web → CSV. Tự cập nhật mỗi 10 phút. Hoặc nhập tay ở ô bên trên.</span>
+     <label>Hiển thị</label><select id="bmode"><option value="day">🎉 Người có sinh nhật HÔM NAY (không có ai thì tự bỏ qua slide)</option><option value="week">📅 Sinh nhật trong 7 ngày tới</option><option value="month">🗓️ Sinh nhật cả tháng này</option></select></div>
+    <div id="qrbox"><label>Nội dung mã QR (link hoặc chữ)</label><input id="qrurl" placeholder="VD: https://forms.office.com/r/... hoặc WIFI:T:WPA;S:Guest;P:12345678;;">
+     <span class="hint">Mã QR được tạo ngay trên Tivi (không cần mạng). Mẹo wifi: <code>WIFI:T:WPA;S:TênWifi;P:MậtKhẩu;;</code> – khách quét là vào được wifi.</span></div>
+    <div id="newsbox"><label>Link RSS</label><input id="rssurl" placeholder="https://vnexpress.net/rss/tin-moi-nhat.rss">
+     <div class="grid" style="gap:10px"><div><label>Số tin hiển thị</label><input id="ncount" type="number" min="3" max="8" value="5"></div><div></div></div>
+     <span class="hint">Tên miền của báo phải có trong Cài đặt chung → Nguồn dữ liệu được phép (đã có sẵn VnExpress, Tuổi Trẻ, Thanh Niên, CafeF, VietNamNet). Cập nhật mỗi 10 phút.</span></div>
+
 
     <h3 style="margin:16px 0 4px">📺 Phát ở đâu?</h3>
     <div class="radio"><label><input type="radio" name="tmode" value="all" checked onchange="tgtMode()"> 🌐 Tất cả màn hình</label><label><input type="radio" name="tmode" value="some" onchange="tgtMode()"> 🎯 Chọn nhóm / màn hình</label></div>
@@ -128,6 +164,35 @@
 
     <div class="row" style="margin-top:14px"><button class="p" id="save_btn" onclick="save()">Lưu</button><button onclick="previewForm()">👁 Xem trước</button><button onclick="reset()">Làm mới form</button></div>
    </div>
+  </div>
+ </section>
+
+ <!-- ============ LỊCH PHÁT ============ -->
+ <section class="pane" id="pane_cal" hidden>
+  <div class="card">
+   <div class="toolbar"><select id="cal_scope" onchange="renderCal()"></select><button class="sm" onclick="calWeek(-1)">◀ Tuần trước</button><b id="cal_label" style="min-width:170px;text-align:center"></b><button class="sm" onclick="calWeek(1)">Tuần sau ▶</button><button class="sm" onclick="calWeek(0)">Tuần này</button></div>
+   <div id="cal"></div>
+   <p class="hint" style="margin-top:8px">Hàng "Cả ngày": nội dung không giới hạn giờ, phát xoay vòng suốt ngày. Các khối bên dưới: nội dung chỉ phát trong khung giờ đã đặt. Khối sọc = đang chờ duyệt. Bấm vào khối để sửa.</p>
+  </div>
+ </section>
+
+ <!-- ============ BÁO CÁO ============ -->
+ <section class="pane" id="pane_report" hidden>
+  <div class="card">
+   <div class="toolbar"><select id="rp_range" onchange="loadReport()"><option value="0">Hôm nay</option><option value="6" selected>7 ngày qua</option><option value="29">30 ngày qua</option><option value="89">90 ngày qua</option></select><select id="rp_screen" onchange="loadReport()"></select><button class="sm" onclick="loadReport()">🔄 Làm mới</button><button class="sm" onclick="exportReport()">⬇ Xuất Excel (CSV)</button></div>
+   <div class="stats" id="rp_stats"></div>
+   <h3 style="margin:16px 0 4px">Lượt phát theo ngày</h3><div class="bars" id="rp_days"></div>
+   <div class="grid" style="margin-top:14px"><div><h3>Nội dung được phát</h3><table class="tb" id="rp_slides"></table></div><div><h3>Theo màn hình</h3><table class="tb" id="rp_screens"></table></div></div>
+   <p class="hint" style="margin-top:10px">Số liệu do từng Tivi tự ghi khi phát (proof-of-play) và gửi lên mỗi 20 giây. "Hoạt động" = thời gian Tivi bật và kết nối được với hệ thống.</p>
+  </div>
+ </section>
+
+ <!-- ============ NHẬT KÝ ============ -->
+ <section class="pane" id="pane_audit" hidden>
+  <div class="card">
+   <div class="toolbar"><select id="au_tbl" onchange="loadAudit()"><option value="">📄 Tất cả thao tác</option><option value="slides">🗂 Nội dung</option><option value="screens">📺 Màn hình</option><option value="screen_groups">🗂 Nhóm</option><option value="alerts">🚨 Khẩn cấp</option><option value="sig_settings">⚙️ Cài đặt</option><option value="profiles">👥 Người dùng</option></select><input id="au_q" placeholder="🔍 Tìm theo người, tên nội dung..." oninput="renderAudit()"><button class="sm" onclick="loadAudit()">🔄</button></div>
+   <div id="au_list"></div>
+   <p class="hint" style="margin-top:8px">Hiện 300 thao tác gần nhất. Với nội dung: bấm "↩ Khôi phục" để đưa slide về đúng phiên bản trước lần sửa/xóa đó.</p>
   </div>
  </section>
 
@@ -153,6 +218,11 @@
     <label style="display:flex;align-items:center;gap:8px;margin:10px 0;cursor:pointer;font-weight:bold;color:var(--fg)"><input type="checkbox" id="pin_lock" style="width:auto" onchange="togglePinLock(this.checked)"> Yêu cầu PIN khi thoát/tạm dừng trên Tivi</label>
     <div class="row"><input id="master_pin_in" type="password" placeholder="Mã PIN mới (tối thiểu 6 ký tự)" style="flex:1" autocomplete="new-password"><button type="button" onclick="changePin()">Lưu PIN</button></div>
     <p class="hint">Mỗi Tivi chỉ được nhập sai 5 lần / 10 phút (tính riêng từng Tivi). Để khóa chắc chắn, chạy trình duyệt Tivi ở chế độ kiosk (xem README.md).</p>
+   </div>
+   <div class="card" id="host_card" style="grid-column:1/-1"><h2>🌐 Nguồn dữ liệu được phép</h2>
+    <p class="hint" style="margin-top:0">Hệ thống chỉ đọc dữ liệu (RSS tin tức, KPI từ Oracle BI Publisher / ORDS / API) từ các tên miền trong danh sách này, để không ai lợi dụng được. Google Calendar, Google Sheet, Outlook luôn được phép. Ví dụ Oracle Fusion: <code>xxxx.fa.ocs.oraclecloud.com</code>; Oracle EBS cần có địa chỉ https công khai (ISG/ORDS/API Gateway).</p>
+    <div id="host_list"></div>
+    <div class="row" style="flex-wrap:nowrap;margin-top:8px"><input id="host_new" placeholder="Tên miền, VD: abcd.fa.ocs.oraclecloud.com" style="flex:2"><input id="host_note" placeholder="Ghi chú" style="flex:1"><button class="p" onclick="addHost()">Thêm</button></div>
    </div>
    <div class="card" id="mig_card" style="grid-column:1/-1;display:none"><h2>📦 Chép thư viện từ app cũ</h2>
     <p class="hint" style="margin-top:0">Tải toàn bộ ảnh/video trong Thư viện của project cũ sang project này, rồi tự đổi link trong các slide và logo. Chạy lại nhiều lần vẫn an toàn (file đã có sẽ bỏ qua). Nên chạy sau khi đã nhập dữ liệu bằng <code>export_tu_app_cu.sql</code>.</p>
@@ -312,14 +382,14 @@ function enterAs(u){
 function applyPermissions(){
  const sh=(s,v)=>{const e=$(s);if(e)e.style.display=v?'':'none'};
  sh('#btn_users',can('users'));sh('#btn_em',can('alert'));sh('#btn_em2',can('alert'));sh('#btn_pair',can('screens'));sh('#btn_groups',can('screens'));
- sh('#btn_media',can('create'));sh('#mig_card',can('settings')&&!!(CFG.old&&CFG.old.url&&CFG.old.key));sh('#tab_settings',can('settings'));sh('#add_card',can('create'));
+ sh('#btn_media',can('create'));sh('#tab_audit',can('edit'));sh('#host_card',can('settings'));sh('#mig_card',can('settings')&&!!(CFG.old&&CFG.old.url&&CFG.old.key));sh('#tab_settings',can('settings'));sh('#add_card',can('create'));
 }
 function toggleUserMenu(e){e.stopPropagation();const l=$('#umenu_list');l.hidden=!l.hidden}
 function closeUserMenu(){$('#umenu_list').hidden=true}
 document.addEventListener('click',e=>{if(!e.target.closest('#umenu'))closeUserMenu()});
 
 /* ================= DỮ LIỆU ================= */
-const DB={settings:{},groups:[],screens:[],slides:[],alerts:[]};
+const DB={settings:{},groups:[],screens:[],slides:[],alerts:[],hosts:[],v21:true};
 const gName=id=>(DB.groups.find(g=>g.id===id)||{}).name;
 const sName=id=>(DB.screens.find(s=>s.id===id)||{}).name;
 async function loadAll(){
@@ -331,12 +401,13 @@ async function loadAll(){
    q(sb.from('slides').select('*').order('sort')),
    q(sb.from('alerts').select('*').order('created_at',{ascending:false}).limit(40))]);
   DB.settings=st||{};DB.groups=gr||[];DB.slides=sl||[];DB.alerts=al||[];
+  try{DB.hosts=await q(sb.from('sig_feed_hosts').select('*').order('host'))||[];DB.v21=true}catch(e){DB.hosts=[];DB.v21=false}
   await loadScreens(true);
-  $('#err_bar').hidden=true;setCloud('☁️ Đã kết nối ✔',true);
+  $('#err_bar').hidden=DB.v21;if(!DB.v21)$('#err_bar').textContent='⚠️ Chưa cài đợt nâng cấp 2 (Báo cáo, Nhật ký, Tin tức, nguồn Oracle…). Admin chạy file supabase/supabase_phase3.sql trong Supabase → SQL Editor.';setCloud('☁️ Đã kết nối ✔',true);
  }catch(e){
   console.error(e);setCloud('⚠️ Lỗi kết nối',false);
   const missing=/relation|does not exist|schema cache|Could not find/i.test(e.message||'');
-  $('#err_bar').textContent=missing?'⚠️ Chưa có cấu trúc dữ liệu v2. Admin cần chạy file supabase_v2.sql trong Supabase → SQL Editor (xem HUONG-DAN-V2.md).':'⚠️ Không tải được dữ liệu: '+(e.message||e);
+  $('#err_bar').textContent=missing?'⚠️ Chưa có cấu trúc dữ liệu v2. Admin cần chạy file supabase/supabase_full.sql trong Supabase → SQL Editor (xem README.md).':'⚠️ Không tải được dữ liệu: '+(e.message||e);
   $('#err_bar').hidden=false;
  }
  renderAll();
@@ -344,15 +415,17 @@ async function loadAll(){
 async function loadScreens(silent){
  try{DB.screens=await q(sb.from('screens').select('id,name,location,group_id,status,ticker,lay,sidenote,last_seen,info,created_at,paired_at,paired_by').neq('status','pending').order('name'))||[]}
  catch(e){if(!silent)fail(e,'Không tải được danh sách màn hình');return}
+ checkOffline();
  if(!silent){renderScreens();renderStats();refreshPick()}
 }
-function renderAll(){refreshPick();renderStats();renderGroupChips();renderScreens();fillScopeSelect();renderSlides();renderAlerts();renderEmBar();renderSettings();brandLogo()}
+function renderAll(){refreshPick();renderStats();renderGroupChips();renderScreens();fillScopeSelect();renderSlides();renderAlerts();renderEmBar();renderSettings();renderHosts();brandLogo();fillReportScreens();if(!$('#pane_cal').hidden)renderCal()}
 
 /* ================= TAB ================= */
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(!b)return;
  $$('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
- $$('.pane').forEach(p=>p.hidden=p.id!=='pane_'+b.dataset.tab);lsSet('sig_tab',b.dataset.tab)});
-(()=>{const t=lsGet('sig_tab');const b=t&&$(`#tabs button[data-tab="${t}"]`);if(b&&t!=='settings')b.click()})();
+ $$('.pane').forEach(p=>p.hidden=p.id!=='pane_'+b.dataset.tab);lsSet('sig_tab',b.dataset.tab);
+ if(b.dataset.tab==='report')loadReport();if(b.dataset.tab==='audit')loadAudit();if(b.dataset.tab==='cal')renderCal()});
+(()=>{const t=lsGet('sig_tab');const b=t&&$(`#tabs button[data-tab="${t}"]`);if(b&&!['settings','audit','report'].includes(t))b.click()})();
 
 /* ================= MÀN HÌNH ================= */
 const ONLINE_MS=70e3;
@@ -535,24 +608,24 @@ $('#kind').innerHTML=Object.entries(KINDS).map(([k,v])=>`<option value="${k}">${
 $('#days').innerHTML=['CN','T2','T3','T4','T5','T6','T7'].map((d,i)=>`<label style="display:inline-flex;gap:4px;margin:0;align-items:center"><input type="checkbox" style="width:auto" value="${i}" checked>${d}</label>`).join('');
 const setDays=a=>$$('#days input').forEach(c=>c.checked=!a||a.includes(+c.value));
 function fields(){const t=$('#type').value,sh=(id,v)=>$(id).style.display=v?'':'none';
- sh('#kindbox',t=='event');sh('#tbox',!['meeting','video','clock','image','weather','web'].includes(t));sh('#fitbox',t=='image');
+ sh('#kindbox',t=='event');sh('#tbox',!['meeting','video','clock','image','weather','web'].includes(t));sh('#bdbox',t=='birthday');sh('#qrbox',t=='qr');sh('#newsbox',t=='news');sh('#fitbox',t=='image');
  $('#il').textContent=t=='image'?'Chọn ảnh (hiển thị toàn màn hình)':'Ảnh nền (tùy chọn)';
- sh('#sbox',['welcome','event','countdown'].includes(t));sh('#xbox',['welcome','meeting','text','kpi'].includes(t));sh('#ibox',!['room','web','video'].includes(t)||t==='video');sh('#vbox',t=='video');sh('#cbox',t=='countdown');
+ sh('#sbox',['welcome','event','countdown','birthday','qr'].includes(t));sh('#xbox',['welcome','meeting','text','kpi','birthday','qr'].includes(t)&&!(t==='kpi'&&$('#kpisrc').value!=='manual'));sh('#ibox',!['room','web','news'].includes(t));sh('#vbox',t=='video');sh('#cbox',t=='countdown');
  sh('#calbox',t=='calendar'||t=='room');sh('#wbox',t=='weather');sh('#kpibox',t=='kpi');sh('#webbox',t=='web');
- $('#tl').textContent=t=='welcome'?'Tên công ty khách':t=='calendar'?'Tiêu đề (VD: Lịch họp phòng Sài Gòn)':t=='room'?'Tên phòng họp (VD: Phòng Hà Nội – Tầng 5)':'Tiêu đề';
- $('#sl').textContent=t=='welcome'?'Tên khách / người tham dự':'Tên người / nhóm / dự án';
- $('#xl').textContent=t=='meeting'?'Mỗi dòng một cuộc họp: Giờ | Nội dung | Phòng':t=='kpi'?'Nhập tay – mỗi dòng: Tên | Giá trị | Mục tiêu | Đơn vị':'Lời nhắn thêm';
+ $('#tl').textContent=t=='welcome'?'Tên công ty khách':t=='calendar'?'Tiêu đề (VD: Lịch họp phòng Sài Gòn)':t=='room'?'Tên phòng họp (VD: Phòng Hà Nội – Tầng 5)':t=='birthday'?'Tiêu đề (để trống = tự động, VD: "Chúc mừng sinh nhật")':t=='qr'?'Tiêu đề (VD: Đăng ký tham dự Year End Party)':t=='news'?'Tiêu đề (VD: Tin tức hôm nay)':'Tiêu đề';
+ $('#sl').textContent=t=='welcome'?'Tên khách / người tham dự':t=='birthday'?'Lời chúc (tùy chọn)':t=='qr'?'Dòng phụ (tùy chọn)':'Tên người / nhóm / dự án';
+ $('#xl').textContent=t=='meeting'?'Mỗi dòng một cuộc họp: Giờ | Nội dung | Phòng':t=='kpi'?'Nhập tay – mỗi dòng: Tên | Giá trị | Mục tiêu | Đơn vị':t=='birthday'?'Hoặc nhập tay – mỗi dòng: Họ tên | Ngày sinh (dd/mm) | Phòng ban':t=='qr'?'Mô tả thêm (tùy chọn)':'Lời nhắn thêm';
  if(t=='video'){$('#durlbl').textContent='Thời gian phát (giây) – để 0 = phát hết video';if($('#dur').value=='10')$('#dur').value='0'}
  else{$('#durlbl').textContent=t=='room'?'Thời gian hiển thị (giây) – màn cửa phòng nên để 60':'Thời gian hiển thị (giây)';if($('#dur').value=='0')$('#dur').value='10'}
 }
-fields();
+kpiSrc();fields();
 const normFeedURL=u=>String(u||'').trim().replace(/^webcal:\/\//i,'https://');
 function renderTargetPick(r){
  const all=!r||r.target_all;document.querySelector(`input[name=tmode][value=${all?'all':'some'}]`).checked=true;
  $('#tgt_pick').innerHTML=pickHTML('t',r?r.target_groups||[]:[],r?r.target_screens||[]:[]);tgtMode();
 }
 function reset(){edit=null;imgData='';$('#ft').textContent='Thêm nội dung';$('#save_btn').textContent='Lưu';
- ['title','sub','extra','vurl','from','to','t1','t2','target','icsurl','wcity','kpiurl','wurl'].forEach(i=>$('#'+i).value='');$('#zoom').value=100;
+ ['title','sub','extra','vurl','from','to','t1','t2','target','icsurl','wcity','kpiurl','wurl','kpiuser','kpipass','bdurl','qrurl','rssurl'].forEach(i=>$('#'+i).value='');$('#kpisrc').value='manual';$('#bmode').value='day';$('#ncount').value=5;kpiSrc();$('#zoom').value=100;
  setDays();$('#imgst').textContent='';$('#img_clear').style.display='none';$('#img').value='';$('#vfile').value='';$('#imgov').checked=true;$('#vsound').checked=false;$('#ytcrop').checked=true;$('#dur').value=10;fields();renderTargetPick(null)}
 function ed(id){
  const r=DB.slides.find(x=>x.id===id);if(!r)return;reset();edit=id;const s=r.data||{};
@@ -560,18 +633,20 @@ function ed(id){
  ['title','sub','extra','dur','from','to','t1','t2','target','wurl','wcity'].forEach(k=>{if(s[k]!=null)$('#'+k).value=s[k]});$('#zoom').value=s.zoom||100;
  setDays(s.days);$('#vurl').value=s.vurl||'';$('#vsound').checked=!!s.sound;$('#ytcrop').checked=s.ytcrop!==false;$('#fit').value=s.fit||'contain';$('#imgov').checked=s.imgov!==false;
  imgData=s.img||'';$('#imgst').textContent=imgData?'Giữ ảnh hiện tại':'';$('#img_clear').style.display=imgData?'':'none';
- if(s.feed)sb.from('sig_feeds').select('url').eq('id',s.feed).maybeSingle().then(({data})=>{if(data&&edit===id)$(r.type==='kpi'?'#kpiurl':'#icsurl').value=data.url});
+ if(s.bmode)$('#bmode').value=s.bmode;if(s.qrurl)$('#qrurl').value=s.qrurl;if(s.count)$('#ncount').value=s.count;
+ if(s.feed)sb.from('sig_feeds').select('url').eq('id',s.feed).maybeSingle().then(({data})=>{if(!data||edit!==id)return;const box={kpi:'#kpiurl',birthday:'#bdurl',news:'#rssurl'}[r.type]||'#icsurl';$(box).value=data.url;
+  if(r.type==='kpi'){$('#kpisrc').value=/^https:\/\/docs\.google\.com\//i.test(data.url)?'sheet':'custom';kpiSrc();if($('#kpisrc').value==='custom')sb.rpc('feed_auth_user',{p_feed:s.feed}).then(({data:u})=>{if(edit===id)$('#kpiuser').value=u||''})}});
  renderTargetPick(r);
- $$('#tabs button')[1].click();$('#add_card').scrollIntoView({behavior:'smooth',block:'start'});
+ $('#tabs button[data-tab=content]').click();$('#add_card').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function val(){return{kind:$('#kind').value,title:$('#title').value,sub:$('#sub').value,extra:$('#extra').value,img:imgData,imgov:$('#imgov').checked,
  vurl:$('#vurl').value.startsWith('(')?'':$('#vurl').value.trim(),dur:+$('#dur').value,sound:$('#vsound').checked,ytcrop:$('#ytcrop').checked,fit:$('#fit').value,
  from:$('#from').value,to:$('#to').value,t1:$('#t1').value,t2:$('#t2').value,target:$('#target').value,days:$$('#days input:checked').map(c=>+c.value),
- wurl:$('#wurl').value.trim(),zoom:+$('#zoom').value||100}}
+ wurl:$('#wurl').value.trim(),zoom:+$('#zoom').value||100,bmode:$('#bmode').value,qrurl:$('#qrurl').value.trim(),count:+$('#ncount').value||5}}
 function cleanData(t,v){ // chỉ giữ các trường loại slide này dùng → dữ liệu gọn, Tivi tải nhẹ
  const keep={welcome:['title','sub','extra','img','imgov'],meeting:['extra','img','imgov'],event:['kind','title','sub','extra','img','imgov'],video:['vurl','sound','ytcrop','img','imgov'],
   image:['img','fit'],text:['title','extra','img','imgov'],countdown:['title','sub','target','img','imgov'],clock:['img','imgov'],calendar:['title','feed','img','imgov'],room:['title','feed'],
-  weather:['wcity','wlat','wlon','wname','img','imgov'],kpi:['title','extra','feed','img','imgov'],web:['wurl','zoom']}[t]||Object.keys(v);
+  weather:['wcity','wlat','wlon','wname','img','imgov'],kpi:['title','extra','feed','img','imgov'],web:['wurl','zoom'],birthday:['title','sub','extra','feed','bmode','img','imgov'],qr:['title','sub','extra','qrurl','img','imgov'],news:['title','feed','count']}[t]||Object.keys(v);
  const o={};for(const k of [...keep,'dur','from','to','t1','t2','days'])if(v[k]!==undefined&&v[k]!==''&&v[k]!==null)o[k]=v[k];
  if(o.days&&o.days.length===7)delete o.days;if(o.imgov===true)delete o.imgov;
  return o;
@@ -588,7 +663,19 @@ async function buildData(t,old){ // trả về data đã hoàn chỉnh (kèm fee
  if(t==='video'){if(!v.vurl)throw new Error('Hãy nhập link, chọn từ thư viện hoặc tải file video lên.');if(!yt(v.vurl)&&!safeMedia(v.vurl))throw new Error('Link video phải bắt đầu bằng https://')}
  if(t==='web'&&!safeWeb(v.wurl))throw new Error('Link trang web phải bắt đầu bằng https://');
  if(t==='calendar'||t==='room'){const u=normFeedURL($('#icsurl').value);if(!/^https:\/\/\S+$/i.test(u))throw new Error('Nhập link lịch dạng ICS (https://... hoặc webcal://...).');v.feed=await saveFeed('ics',u,od.feed)}
- if(t==='kpi'){const u=normFeedURL($('#kpiurl').value);if(u){if(!/^https:\/\/docs\.google\.com\/spreadsheets\//i.test(u))throw new Error('Link KPI phải là Google Sheet đã "Xuất bản lên web" dạng CSV.');v.feed=await saveFeed('csv',u,od.feed)}else if(!v.extra.trim())throw new Error('Nhập dữ liệu KPI hoặc dán link Google Sheet.')}
+ if(t==='kpi'){const src=$('#kpisrc').value,u=normFeedURL($('#kpiurl').value);
+  if(src==='manual'){if(!v.extra.trim())throw new Error('Nhập dữ liệu KPI (mỗi dòng: Tên | Giá trị | Mục tiêu | Đơn vị).')}
+  else{if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link dữ liệu phải bắt đầu bằng https://');
+   if(src==='sheet'&&!/^https:\/\/docs\.google\.com\/spreadsheets\//i.test(u))throw new Error('Link phải là Google Sheet đã "Xuất bản lên web" dạng CSV.');
+   if(src==='custom')checkHost(u);
+   v.feed=await saveFeed('csv',u,od.feed);
+   if(src==='custom'){const us=$('#kpiuser').value.trim(),pw=$('#kpipass').value;if(us||od.feed)await q(sb.rpc('set_feed_auth',{p_feed:v.feed,p_user:us,p_pass:pw}))}
+   v.extra=''}}
+ if(t==='birthday'){const u=normFeedURL($('#bdurl').value);
+  if(u){if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link Google Sheet phải bắt đầu bằng https://');checkHost(u);v.feed=await saveFeed('csv',u,od.feed);v.extra=''}
+  else if(!v.extra.trim())throw new Error('Dán link Google Sheet danh sách nhân viên hoặc nhập tay (Họ tên | Ngày sinh | Phòng ban).')}
+ if(t==='qr'&&!v.qrurl)throw new Error('Nhập nội dung mã QR (link hoặc chữ).');
+ if(t==='news'){const u=normFeedURL($('#rssurl').value);if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link RSS phải bắt đầu bằng https://');checkHost(u);v.feed=await saveFeed('rss',u,od.feed)}
  if(t==='weather'){const c=$('#wcity').value.trim();if(!c)throw new Error('Nhập tên thành phố.');v.wcity=c;
   if(od.wcity===c&&od.wlat!=null){v.wlat=od.wlat;v.wlon=od.wlon;v.wname=od.wname}else{const g=await geocode(c).catch(e=>{throw new Error(`Không tìm thấy thành phố "${c}" (${e.message})`)});v.wlat=g.latitude;v.wlon=g.longitude;v.wname=g.name}}
  return cleanData(t,v);
@@ -756,6 +843,147 @@ $('#vfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#vurl')
 function pickImg(){openMedia('image',u=>{imgData=u;$('#imgst').textContent='Đã chọn từ thư viện ✔';$('#img_clear').style.display=''})}
 function pickVid(){openMedia('video',u=>{$('#vurl').value=u})}
 
+
+/* ================= NGUỒN DỮ LIỆU (KPI tùy chỉnh, tên miền được phép) ================= */
+const BUILTIN_HOSTS=[/(^|\.)calendar\.google\.com$/,/^docs\.google\.com$/,/(^|\.)outlook\.(office365|office|live)\.com$/];
+function hostOK(h){h=String(h||'').toLowerCase();return BUILTIN_HOSTS.some(r=>r.test(h))||DB.hosts.some(x=>h===x.host||h.endsWith('.'+x.host))}
+function checkHost(u){let h='';try{h=new URL(u).hostname}catch(e){throw new Error('Link không hợp lệ')}
+ if(!DB.v21)return;if(!hostOK(h))throw new Error(`Tên miền "${h}" chưa được cho phép.\nAdmin vào ⚙️ Cài đặt chung → 🌐 Nguồn dữ liệu được phép để thêm tên miền này.`)}
+function kpiSrc(){const v=$('#kpisrc').value,sh=(id,x)=>$(id).style.display=x?'':'none';
+ sh('#kpiurlbox',v!=='manual');sh('#kpiauth',v==='custom');
+ $('#kpiurl').placeholder=v==='sheet'?'https://docs.google.com/spreadsheets/d/e/.../pub?output=csv':'https://<máy-chủ>/xmlpserver/.../BaoCaoKPI.xdo?_xf=csv&_xautorun=true';
+ $('#kpihint').innerHTML=v==='manual'?'Nhập dữ liệu ở ô Nội dung phía trên, mỗi dòng: Tên | Giá trị | Mục tiêu | Đơn vị.'
+  :v==='sheet'?'Google Sheet → Tệp → Chia sẻ → Xuất bản lên web → CSV. Các cột: Tên | Giá trị | Mục tiêu | Đơn vị. Tự cập nhật mỗi 10 phút.'
+  :'Dữ liệu 4 cột theo thứ tự: <b>Tên | Giá trị | Mục tiêu | Đơn vị</b> (dòng tiêu đề tự bỏ qua).<br>• <b>Oracle BI Publisher</b> (Fusion/EBS): link báo cáo dạng <code>…/xmlpserver/&lt;thư mục&gt;/&lt;báo cáo&gt;.xdo?_xf=csv&amp;_xautorun=true</code><br>• <b>ORDS / REST</b>: trả về JSON <code>{"items":[{…}]}</code> hoặc mảng.<br>Tài khoản/mật khẩu được giấu ở máy chủ, Tivi và trình duyệt không đọc được. Nên tạo 1 tài khoản chỉ có quyền xem báo cáo. Đổi link thì nhập lại mật khẩu.';
+}
+function renderHosts(){const box=$('#host_list');if(!box)return;
+ if(!DB.v21){box.innerHTML='<p class="hint">Chưa cài đợt nâng cấp 2 (supabase_phase3.sql).</p>';return}
+ box.innerHTML=DB.hosts.map(h=>`<div class="it"><b style="flex:0 0 auto">${esc(h.host)}</b><span class="t hint">${esc(h.note||'')}</span><button class="sm" style="color:#d92d20" onclick="delHost('${esc(h.host)}')">Xóa</button></div>`).join('')||'<p class="hint">Chưa có tên miền nào.</p>';
+}
+async function addHost(){
+ let h=$('#host_new').value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/[\/:?#].*$/,'');
+ if(!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h))return alert('Tên miền không hợp lệ (VD: abcd.fa.ocs.oraclecloud.com)');
+ try{const r=await q(sb.from('sig_feed_hosts').insert({host:h,note:$('#host_note').value.trim()}).select().single());DB.hosts.push(r);DB.hosts.sort((a,b)=>a.host.localeCompare(b.host));$('#host_new').value='';$('#host_note').value='';renderHosts()}
+ catch(e){if(/duplicate|unique/i.test(e.message||''))return alert('Tên miền này đã có trong danh sách.');fail(e,'Không thêm được')}
+}
+async function delHost(h){if(!confirm(`Xóa "${h}"? Các slide lấy dữ liệu từ tên miền này sẽ báo lỗi.`))return;try{await q(sb.from('sig_feed_hosts').delete().eq('host',h));DB.hosts=DB.hosts.filter(x=>x.host!==h);renderHosts()}catch(e){fail(e,'Không xóa được')}}
+
+/* ================= CẢNH BÁO TIVI MẤT KẾT NỐI ================= */
+const prevState=new Map();let offlineReady=false;
+function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t)}const d=document.createElement('div');d.textContent=msg;t.appendChild(d);setTimeout(()=>d.remove(),10000)}
+function checkOffline(){
+ const off=DB.screens.filter(s=>scrState(s)==='off'),bar=$('#off_bar');
+ if(bar){bar.hidden=!off.length;bar.innerHTML=off.length?`⚠️ ${off.length} màn hình đang mất kết nối: `+off.map(s=>`<b>${esc(s.name)}</b> (${rel(s.last_seen)})`).join(', '):''}
+ for(const s of DB.screens){const st=scrState(s),was=prevState.get(s.id);
+  if(offlineReady&&was&&was!=='off'&&was!=='dis'&&st==='off'){const m=`📴 Tivi "${s.name}" vừa mất kết nối`;toast(m);
+   try{if(window.Notification&&Notification.permission==='granted')new Notification('ARON Signage',{body:m,tag:'off-'+s.id})}catch(_){}}
+  if(offlineReady&&was==='off'&&st==='on')toast(`✅ Tivi "${s.name}" đã kết nối lại`);
+  prevState.set(s.id,st)}
+ offlineReady=true;
+ const b=$('#btn_notify');if(b&&window.Notification)b.textContent=Notification.permission==='granted'?'🔔 Đã bật báo mất kết nối':'🔔 Báo khi Tivi mất kết nối';
+}
+async function enableNotify(){
+ if(!window.Notification)return alert('Trình duyệt này không hỗ trợ thông báo. Cảnh báo vẫn hiện trong trang khi bạn mở tab Màn hình.');
+ const p=await Notification.requestPermission();checkOffline();
+ alert(p==='granted'?'Đã bật! Khi trang quản trị đang mở (kể cả ở tab nền), bạn sẽ nhận thông báo khi có Tivi mất kết nối.':'Bạn chưa cho phép thông báo. Có thể bật lại trong cài đặt trang web của trình duyệt.');
+}
+
+/* ================= LỊCH PHÁT TUẦN ================= */
+let calOffset=0;
+const TYPE_COLOR={welcome:'#2a64d6',meeting:'#1a9e8f',event:'#e0412f',video:'#7b5cf0',image:'#0b5394',text:'#c45500',countdown:'#b8860b',clock:'#5d6b8a',calendar:'#1a9e5a',room:'#1a9e5a',weather:'#30a0d0',kpi:'#211f6b',web:'#555',birthday:'#ff5c8a',qr:'#333',news:'#8a3ffc'};
+function calWeek(d){calOffset=d?calOffset+d:0;renderCal()}
+function calScopeOptions(){const v=$('#cal_scope').value;
+ $('#cal_scope').innerHTML='<option value="">📄 Tất cả nội dung</option>'+DB.screens.map(s=>`<option value="s:${s.id}">📺 ${esc(s.name)}</option>`).join('');
+ if([...$('#cal_scope').options].some(o=>o.value===v))$('#cal_scope').value=v}
+function renderCal(){
+ if(!$('#cal_scope'))return;calScopeOptions();
+ const v=$('#cal_scope').value,scr=v.startsWith('s:')?DB.screens.find(x=>x.id===v.slice(2)):null;
+ const rows=(scr?slidesFor(scr):DB.slides).filter(r=>r.enabled&&r.status!=='rejected');
+ const now=new Date(),mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-((now.getDay()+6)%7)+calOffset*7);
+ const days=[...Array(7)].map((_,i)=>new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i));
+ const ymdL=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,todayS=ymdL(now);
+ $('#cal_label').textContent=`${days[0].toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'})} – ${days[6].toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})}`;
+ const toMin=t=>{const m=String(t||'').match(/^(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null};
+ const per=days.map(d=>{const ds=ymdL(d),dow=d.getDay();const on=rows.filter(r=>{const x=r.data||{};return(!x.from||x.from<=ds)&&(!x.to||x.to>=ds)&&(!x.days||!x.days.length||x.days.includes(dow))});
+  return{all:on.filter(r=>!r.data.t1&&!r.data.t2),timed:on.filter(r=>r.data.t1||r.data.t2).map(r=>({r,a:toMin(r.data.t1)??0,b:toMin(r.data.t2)??1440}))}});
+ let h0=7,h1=19;per.forEach(p=>p.timed.forEach(e=>{h0=Math.min(h0,Math.floor(e.a/60));h1=Math.max(h1,Math.ceil(e.b/60))}));h0=Math.max(0,h0);h1=Math.min(24,Math.max(h1,h0+1));
+ const HP=36,name=r=>esc((r.data&&(r.data.title||r.data.wname))||LBL[r.type]||r.type),col=r=>TYPE_COLOR[r.type]||'#555';
+ let h=`<div class="cal"><div class="hd"></div>${days.map(d=>`<div class="hd ${ymdL(d)===todayS?'today':''}">${d.toLocaleDateString('vi-VN',{weekday:'short'})}<br><span style="font-weight:400">${d.getDate()}/${d.getMonth()+1}</span></div>`).join('')}`;
+ h+=`<div class="lbl">Cả ngày</div>${per.map(p=>`<div class="ad">${p.all.map(r=>`<div class="chipev ${r.status==='pending'?'pend':''}" style="background:${col(r)}" title="${name(r)} · ${esc(LBL[r.type]||r.type)}" onclick="ed('${r.id}')">${name(r)}</div>`).join('')||'<span class="hint" style="font-size:11px">—</span>'}</div>`).join('')}`;
+ h+=`<div>${[...Array(h1-h0)].map((_,i)=>`<div class="hl">${String(h0+i).padStart(2,'0')}:00</div>`).join('')}</div>`;
+ per.forEach((p,di)=>{
+  const ev=[...p.timed].sort((x,y)=>x.a-y.a||y.b-x.b),lanes=[];ev.forEach(e=>{let l=lanes.findIndex(end=>end<=e.a);if(l<0){l=lanes.length;lanes.push(0)}lanes[l]=e.b;e.l=l});const n=Math.max(1,lanes.length);
+  const isToday=ymdL(days[di])===todayS,nm=now.getHours()*60+now.getMinutes();
+  h+=`<div class="col ${isToday?'today':''}" style="height:${(h1-h0)*HP}px">${[...Array(h1-h0)].map(()=>'<div class="hr"></div>').join('')}
+   ${isToday&&nm>=h0*60&&nm<=h1*60?`<div class="nowline" style="top:${(nm-h0*60)/60*HP}px"></div>`:''}
+   ${ev.map(e=>{const top=(Math.max(e.a,h0*60)-h0*60)/60*HP,ht=Math.max(16,(Math.min(e.b,h1*60)-Math.max(e.a,h0*60))/60*HP-2);
+    return`<div class="ev ${e.r.status==='pending'?'pend':''}" style="top:${top}px;height:${ht}px;left:calc(${e.l*100/n}% + 2px);width:calc(${100/n}% - 4px);background:${col(e.r)}" title="${name(e.r)} · ${e.r.data.t1||'00:00'}–${e.r.data.t2||'24:00'}" onclick="ed('${e.r.id}')"><b>${e.r.data.t1||'00:00'}–${e.r.data.t2||'24:00'}</b><br>${name(e.r)}</div>`}).join('')}</div>`});
+ h+='</div>';
+ $('#cal').innerHTML=rows.length?h:'<div class="empty">Chưa có nội dung nào đang bật cho phạm vi này.</div>';
+}
+
+/* ================= BÁO CÁO PHÁT ================= */
+let RP=null;
+const fmtDur=s=>{s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h} giờ ${m} phút`:m?`${m} phút`:`${s} giây`};
+function fillReportScreens(){const el=$('#rp_screen');if(!el)return;const v=el.value;el.innerHTML='<option value="">📺 Tất cả màn hình</option>'+DB.screens.map(s=>`<option value="${s.id}">📺 ${esc(s.name)}</option>`).join('');if([...el.options].some(o=>o.value===v))el.value=v}
+async function loadReport(){
+ if(!me)return;fillReportScreens();
+ const n=+$('#rp_range').value,to=new Date(),from=new Date(to.getFullYear(),to.getMonth(),to.getDate()-n),d=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+ $('#rp_stats').innerHTML='<p class="hint">Đang tải...</p>';
+ try{RP=await q(sb.rpc('report_summary',{p_from:d(from),p_to:d(to),p_screen:$('#rp_screen').value||null}));RP.from=d(from);RP.to=d(to);RP.days=n+1}
+ catch(e){$('#rp_stats').innerHTML=`<p class="hint">⚠️ ${esc(/report_summary|Could not find/i.test(e.message)?'Chưa cài đợt nâng cấp 2: chạy supabase/supabase_phase3.sql':e.message)}</p>`;$('#rp_days').innerHTML='';$('#rp_slides').innerHTML='';$('#rp_screens').innerHTML='';return}
+ const S=RP.by_slide||[],C=RP.by_screen||[],D=RP.by_day||[];
+ const plays=S.reduce((a,x)=>a+x.plays,0),secs=S.reduce((a,x)=>a+x.seconds,0),up=C.reduce((a,x)=>a+x.uptime_seconds,0),act=C.filter(x=>x.uptime_seconds>0).length;
+ $('#rp_stats').innerHTML=`<div class="stat"><b>${plays.toLocaleString('vi-VN')}</b><span>Lượt phát</span></div><div class="stat"><b>${(secs/3600).toFixed(1)}</b><span>Giờ trình chiếu</span></div><div class="stat"><b>${S.length}</b><span>Nội dung đã phát</span></div><div class="stat g"><b>${act}/${C.length}</b><span>Màn hình có hoạt động</span></div><div class="stat"><b>${C.length?(up/3600/Math.max(1,act)/RP.days).toFixed(1):0}</b><span>Giờ hoạt động TB / màn / ngày</span></div>`;
+ const dayMap=new Map(D.map(x=>[x.day,x])),all=[...Array(RP.days)].map((_,i)=>{const x=new Date(from.getFullYear(),from.getMonth(),from.getDate()+i);return{k:d(x),lbl:`${x.getDate()}/${x.getMonth()+1}`,v:(dayMap.get(d(x))||{}).plays||0}}),mx=Math.max(1,...all.map(x=>x.v));
+ $('#rp_days').innerHTML=all.map(x=>`<div class="b" title="${x.lbl}: ${x.v} lượt"><span>${x.v||''}</span><i style="height:${x.v/mx*100}%"></i><span>${RP.days>31?'':x.lbl}</span></div>`).join('');
+ $('#rp_slides').innerHTML='<tr><th>Nội dung</th><th>Loại</th><th class="n">Lượt</th><th class="n">Thời lượng</th><th class="n">Màn</th></tr>'+(S.map(x=>`<tr><td>${esc(x.title||'(không tiêu đề)')}${x.still_exists?'':' <span class="tag">đã xóa</span>'}</td><td>${esc(x.type==='alert'?'🚨 Khẩn cấp':LBL[x.type]||x.type)}</td><td class="n">${x.plays}</td><td class="n">${fmtDur(x.seconds)}</td><td class="n">${x.screens}</td></tr>`).join('')||'<tr><td colspan="5" class="hint">Chưa có dữ liệu phát trong khoảng này.</td></tr>');
+ $('#rp_screens').innerHTML='<tr><th>Màn hình</th><th class="n">Lượt</th><th class="n">Trình chiếu</th><th class="n">Hoạt động</th></tr>'+(C.map(x=>`<tr><td>${esc(x.name)}</td><td class="n">${x.plays}</td><td class="n">${fmtDur(x.play_seconds)}</td><td class="n">${fmtDur(x.uptime_seconds)}</td></tr>`).join('')||'<tr><td colspan="4" class="hint">Chưa có màn hình.</td></tr>');
+}
+function exportReport(){
+ if(!RP)return alert('Chưa có dữ liệu báo cáo');
+ const c=v=>'"'+String(v??'').replace(/"/g,'""')+'"',L=[['Báo cáo phát ARON Signage',RP.from+' → '+RP.to],[],['NỘI DUNG'],['Nội dung','Loại','Lượt phát','Thời lượng (giây)','Số màn']];
+ (RP.by_slide||[]).forEach(x=>L.push([x.title,x.type==='alert'?'Khẩn cấp':LBL[x.type]||x.type,x.plays,x.seconds,x.screens]));
+ L.push([],['MÀN HÌNH'],['Màn hình','Lượt phát','Trình chiếu (giây)','Hoạt động (giây)']);(RP.by_screen||[]).forEach(x=>L.push([x.name,x.plays,x.play_seconds,x.uptime_seconds]));
+ L.push([],['THEO NGÀY'],['Ngày','Lượt phát','Thời lượng (giây)']);(RP.by_day||[]).forEach(x=>L.push([x.day,x.plays,x.seconds]));
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+L.map(r=>r.map(c).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download=`bao-cao-phat_${RP.from}_${RP.to}.csv`;a.click();
+}
+
+/* ================= NHẬT KÝ THAO TÁC ================= */
+let AU=[];
+const TBL={slides:'Nội dung',screens:'Màn hình',screen_groups:'Nhóm',alerts:'Khẩn cấp',sig_settings:'Cài đặt chung',profiles:'Người dùng'};
+const ACT={INSERT:'Thêm',UPDATE:'Sửa',DELETE:'Xóa'};
+async function loadAudit(){
+ if(!can('edit'))return;$('#au_list').innerHTML='<p class="hint">Đang tải...</p>';
+ try{let qq=sb.from('audit_log').select('*');const t=$('#au_tbl').value;if(t)qq=qq.eq('table_name',t);AU=await q(qq.order('id',{ascending:false}).limit(300))||[];renderAudit()}
+ catch(e){$('#au_list').innerHTML=`<p class="hint">⚠️ ${esc(/audit_log|does not exist|Could not find/i.test(e.message)?'Chưa cài đợt nâng cấp 2: chạy supabase/supabase_phase3.sql':e.message)}</p>`}
+}
+function auName(a){const r=a.new_row||a.old_row||{};
+ if(a.table_name==='slides')return(r.data&&(r.data.title||r.data.wname))||LBL[r.type]||r.type;
+ if(a.table_name==='profiles')return r.email;if(a.table_name==='sig_settings')return'Cài đặt chung';return r.name||r.title||r.id}
+function auDetail(a){
+ if(a.action!=='UPDATE'||!a.old_row||!a.new_row)return'';const o=a.old_row,n=a.new_row,ch=[];
+ const scr=a.table_name==='screens',L={enabled:x=>x?'bật':'tắt',status:x=>(scr?{pending:'chờ ghép nối',active:'hoạt động',disabled:'tạm ngưng'}:{approved:'đã duyệt',pending:'chờ duyệt',rejected:'từ chối'})[x]||x,role:x=>x,active:x=>x?'đang phát':'đã tắt'},
+  VN={name:'tên',location:'vị trí',group_id:'nhóm',ticker:'chữ chạy',lay:'bố cục',sidenote:'ghi chú',company:'tên công ty',logo:'logo',pin_lock:'khóa PIN',title:'tiêu đề',msg:'nội dung',until:'thời hạn',level:'mức độ',sound:'âm thanh'};
+ for(const k of Object.keys(n)){if(['updated_at','updated_by_email','reviewed_at','reviewed_by_email','last_seen','info','paired_at','paired_by','pair_code','pair_expires','migrated','stopped_at','stopped_by_email'].includes(k))continue;
+  if(JSON.stringify(o[k])===JSON.stringify(n[k]))continue;
+  if(L[k])ch.push(scr&&k==='status'&&o[k]==='pending'?'ghép nối Tivi':`${k==='enabled'?'Bật/tắt':k==='status'?'Trạng thái':k==='role'?'Quyền':k==='active'?'Khẩn cấp':k}: ${L[k](o[k])} → ${L[k](n[k])}`);
+  else if(k==='sort')ch.push('đổi thứ tự');else if(k==='data')ch.push('nội dung: '+Object.keys(Object.assign({},o.data,n.data)).filter(x=>JSON.stringify((o.data||{})[x])!==JSON.stringify((n.data||{})[x])).join(', '));
+  else if(k.startsWith('target'))ch.push('nơi phát');else if(scr&&k==='status'&&false){}else ch.push(VN[k]||k)}
+ return[...new Set(ch)].join(' · ')}
+function renderAudit(){
+ const qq=$('#au_q').value.trim().toLowerCase();
+ const L=AU.filter(a=>!qq||[a.actor_email,auName(a),TBL[a.table_name]].join(' ').toLowerCase().includes(qq));
+ $('#au_list').innerHTML=L.map(a=>`<div class="au"><div class="w">${new Date(a.at).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}<br>${esc(a.actor_email||'?')}</div>
+  <div class="d"><span class="ac ${a.action}">${ACT[a.action]||a.action}</span> ${esc(TBL[a.table_name]||a.table_name)}: <b>${esc(auName(a)||'')}</b>${auDetail(a)?`<br><small>${esc(auDetail(a))}</small>`:''}</div>
+  ${a.table_name==='slides'&&a.action!=='INSERT'&&can('edit')?`<button class="sm" onclick="restoreSlide(${a.id})" title="Đưa slide về đúng phiên bản TRƯỚC thao tác này">↩ Khôi phục</button>`:''}</div>`).join('')||'<p class="hint">Chưa có thao tác nào.</p>';
+}
+async function restoreSlide(id){
+ const a=AU.find(x=>x.id===id);if(!a)return;
+ if(!confirm(`Khôi phục "${auName(a)}" về phiên bản trước lần ${ACT[a.action].toLowerCase()} lúc ${new Date(a.at).toLocaleString('vi-VN')}?`))return;
+ try{const sid=await q(sb.rpc('restore_slide',{p_audit_id:id}));bump();DB.slides=await q(sb.from('slides').select('*').order('sort'))||[];renderSlides();renderScreens();loadAudit();alert('Đã khôi phục ✔');if(sid)ed(sid)}
+ catch(e){fail(e,'Không khôi phục được')}
+}
 
 /* ================= CHÉP THƯ VIỆN TỪ APP CŨ ================= */
 async function migrateMedia(){

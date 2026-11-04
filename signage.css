@@ -143,3 +143,40 @@ dialog::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)}
 .room-cur{font-size:3.6vw;font-weight:700}.room-time{font-size:2.6vw;opacity:.9;margin-top:.8vw}
 .room-next{margin:3vw auto 0;max-width:70vw;text-align:left;font-size:2vw;background:rgba(255,255,255,.08);border-radius:1.2vw;padding:1.2vw 2vw}
 .room-next b{display:block;color:var(--hl);margin-bottom:.6vw}.room-next span{display:inline-block;min-width:16vw;color:var(--hl);font-weight:700}
+
+/* ===================== v2.1: Sinh nhật, Tin tức, QR, màn dọc ===================== */
+.bdx{width:92%;text-align:center}
+.bd-h{font-size:4.4vw;font-weight:900;text-shadow:0 .3vw 1.2vw rgba(0,0,0,.25)}
+.bd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(17vw,1fr));gap:1.6vw;margin-top:2.4vw}
+.bd-grid.big{grid-template-columns:repeat(auto-fit,minmax(24vw,1fr));max-width:80vw;margin-left:auto;margin-right:auto}
+.bd{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:1.4vw;padding:1.6vw 1vw;backdrop-filter:blur(6px)}
+.bd.today{background:rgba(255,255,255,.3);box-shadow:0 0 0 .3vw rgba(255,255,255,.8),0 1vw 3vw rgba(0,0,0,.2)}
+.bd-av{width:8vw;height:8vw;border-radius:50%;margin:0 auto 1vw;background:rgba(255,255,255,.35) center/cover;display:flex;align-items:center;justify-content:center;font-size:3.6vw;font-weight:800}
+.bd-grid.big .bd-av{width:12vw;height:12vw;font-size:5vw}
+.bd-n{font-size:2.1vw;font-weight:800;line-height:1.2}.bd-grid.big .bd-n{font-size:3vw}
+.bd-d{font-size:1.4vw;opacity:.9;margin-top:.3vw}.bd-t{font-size:1.5vw;margin-top:.6vw;font-weight:700}
+.nw-h{font-size:3vw;font-weight:900;margin-bottom:1.6vw;text-align:left}
+.nw{display:grid;grid-template-columns:1.25fr 1fr;gap:2.4vw;text-align:left;align-items:start}
+.nw-img{width:100%;aspect-ratio:16/9;border-radius:1.2vw;background:#0004 center/cover;margin-bottom:1.2vw}
+.nw-tt{font-size:2.8vw;font-weight:800;line-height:1.25}.nw-d{font-size:1.4vw;opacity:.75;margin-top:.6vw}
+.nw-list{display:flex;flex-direction:column;gap:1.1vw}
+.nw-i{background:rgba(255,255,255,.08);border-left:.4vw solid var(--orange);border-radius:.6vw;padding:1vw 1.4vw}
+.nw-i b{display:block;font-size:1.8vw;line-height:1.3}.nw-i span{font-size:1.2vw;opacity:.7}
+.qr-wrap{display:flex;gap:5vw;align-items:center;justify-content:center;width:90%}
+.qr-txt{flex:1;text-align:left}.qr-hint{margin-top:2vw;font-size:2vw;opacity:.9}
+.qr-box{background:#fff;border-radius:2vw;padding:1.6vw;width:34vh;height:34vh;min-width:26vw;min-height:26vw;box-shadow:0 2vw 5vw rgba(0,0,0,.35)}
+.qr-box svg{width:100%;height:100%;display:block}
+/* Tivi treo dọc (đã xoay màn hình trong cài đặt hệ điều hành) */
+@media (orientation:portrait){
+ #player.sp #body{flex-direction:column}
+ #player.sp #side{width:auto;height:26%;border-left:0;border-top:1px solid #222;flex-direction:row;flex-wrap:wrap;align-content:flex-start;gap:2vw 4vw;padding:3vw}
+ #side .c{font-size:12vw}#side .d{font-size:3.4vw}#side h4{font-size:3vw;width:100%}#side .m{font-size:2.8vw}#side .m i{font-size:2.2vw}#side .n{font-size:3vw;margin-top:0}
+ .sp .sl{zoom:1}
+ .big{font-size:9vw}.mid{font-size:4.4vw}.sm2{font-size:3vw}.emo{font-size:14vw}
+ .mt{width:92%}.mt h3{font-size:6vw}.mr{font-size:3.6vw}.mr b{width:18vw}
+ #bar{font-size:1.8vh}
+ .nw{grid-template-columns:1fr}.qr-wrap{flex-direction:column;text-align:center}.qr-txt{text-align:center}.qr-box{width:60vw;height:60vw}
+ .bd-grid{grid-template-columns:repeat(auto-fit,minmax(26vw,1fr))}.bd-n{font-size:3.4vw}.bd-d,.bd-t{font-size:2.4vw}.bd-h{font-size:6.5vw}
+ .room-st{font-size:10vw}.room-name{font-size:6vw}.room-cur{font-size:5.4vw}.room-time{font-size:3.8vw}.room-next{font-size:3.2vw;max-width:90vw}.room-next span{min-width:26vw}
+ .cd-num{font-size:10vw}.cd-lbl{font-size:2.2vw}.kpi-grid{grid-template-columns:1fr 1fr}.kpi-v{font-size:8vw}.kpi-n{font-size:3.2vw}
+}
