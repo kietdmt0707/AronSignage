@@ -16,25 +16,36 @@ Quản lý nhiều Tivi từ một trang quản trị. Mỗi Tivi được ghép
 
 ---
 
-## Cài đặt từ đầu (khoảng 15 phút)
+## Chuyển từ app cũ sang (khoảng 20 phút)
 
-### 1. Tạo project Supabase mới
-1. Vào supabase.com → **New project**. Đặt tên (ví dụ `aron-signage-v2`), chọn region **Southeast Asia (Singapore)**.
-2. Vào **SQL Editor → New query**, dán toàn bộ `supabase/supabase_full.sql` rồi bấm **Run**.
-3. Vào **Authentication → Users → Add user → Create new user**. Dùng email `kietdmt@aron.com.vn` và tích **Auto Confirm User**. User có email này tự động thành **Admin + Owner**.
-4. Vào **Authentication → Sign In / Providers → Email** và tắt *Confirm email* (để Admin tự tạo user cho nhân viên).
-5. Vào **Project Settings → API Keys**, copy *Project URL* và *Publishable key*, rồi dán vào `config.js`.
+Project cũ: `aron_signage` (ref `celqybfrjzrxvhlhtrqo`). Project mới: `Aron signage-db v2`. Trong suốt quá trình, app cũ **chỉ bị đọc**, không bị sửa gì.
 
-### 2. Triển khai Edge Function `feed` (cần cho lịch họp, phòng họp, KPI từ Google Sheet)
-1. Vào **Edge Functions → Deploy a new function → Via Editor**, đặt tên `feed`, dán `supabase/functions/feed/index.ts`, bấm **Deploy**.
-2. Mở function `feed` → **Details**, tắt **Verify JWT** (Enforce JWT), bấm **Save**.
+### 1. Tạo database trên project MỚI
+Mở **SQL Editor → New query**, dán toàn bộ `supabase/supabase_full.sql` rồi bấm **Run**.
+> ⚠️ **Chưa tạo user** ở bước này. Tài khoản sẽ được chép sang từ app cũ ở bước 2.
 
-### 3. Chép dữ liệu từ app cũ (tùy chọn)
-1. Mở SQL Editor của **project cũ**, chạy `supabase/export_tu_app_cu.sql`. File này chỉ đọc, không sửa gì ở app cũ.
+### 2. Chép dữ liệu: project CŨ → project MỚI
+1. Mở SQL Editor của **project cũ**, chạy `supabase/export_tu_app_cu.sql`.
 2. Bấm vào ô kết quả `lenh_nhap` → **Copy cell**.
-3. Mở SQL Editor của **project mới**, dán vào rồi bấm **Run**. Màn hình báo "Đã nhập … slide và … nguồn lịch/KPI".
+3. Mở SQL Editor của **project mới**, dán vào rồi bấm **Run**. Màn hình báo `✅ Đã nhập: … tài khoản, … phân quyền, … slide, … nguồn lịch/KPI.`
 
-Ảnh và video cũ vẫn lấy từ Storage của project cũ, nên chỉ hiển thị được khi project cũ còn hoạt động. Nếu sau này muốn xóa project cũ, hãy tải các ảnh/video đó lên lại Thư viện của bản mới.
+Những gì được chép:
+- Tài khoản đăng nhập, **giữ nguyên mật khẩu cũ**.
+- Phân quyền Admin / Editor / Creator; Owner vẫn là `kietdmt@aron.com.vn`.
+- Mã PIN Tivi.
+- Link lịch / Google Sheet bí mật.
+- Cài đặt chung và toàn bộ slide.
+
+Chạy lại lệnh nhập nhiều lần vẫn an toàn: phần nào đã có sẽ được bỏ qua.
+
+> Nếu Supabase báo lỗi quyền khi chép tài khoản (`auth.users`), hãy tạo lại user thủ công ở **Authentication → Users → Add user** rồi chạy lại lệnh nhập. Phân quyền sẽ không tự áp dụng; Admin chọn lại quyền trong trang quản trị. Riêng user có email `kietdmt@aron.com.vn` tự thành Admin + Owner.
+
+### 3. Cài đặt khác trên project MỚI
+- **Authentication → Sign In / Providers → Email**: tắt *Confirm email* (để Admin tự tạo user cho nhân viên).
+- **Edge Functions → Deploy a new function → Via Editor**:
+  1. Đặt tên `feed`, dán `supabase/functions/feed/index.ts`, bấm **Deploy**.
+  2. Mở **Details**, tắt **Verify JWT**, bấm **Save**.
+- **Project Settings → API Keys**: copy *Project URL* và *Publishable key* rồi dán vào `config.js` (2 dòng `url`, `key`).
 
 ### 4. Đưa lên GitHub Pages
 1. Tạo repo mới trên GitHub (ví dụ `aron-signage-v2`) rồi push toàn bộ thư mục này lên.
@@ -43,7 +54,13 @@ Quản lý nhiều Tivi từ một trang quản trị. Mỗi Tivi được ghép
    - Quản trị: `https://<tài-khoản>.github.io/aron-signage-v2/admin.html`
    - Tivi: `https://<tài-khoản>.github.io/aron-signage-v2/player.html`
 
-### 5. Ghép nối Tivi
+### 5. Chép ảnh/video trong Thư viện
+1. Mở `admin.html` và đăng nhập bằng tài khoản cũ.
+2. Vào tab **⚙️ Cài đặt chung**, bấm **📦 Chép thư viện từ app cũ** → **Bắt đầu chép**.
+
+Hệ thống tải từng file từ project cũ sang project mới, rồi tự đổi link trong các slide và logo. File nào lỗi thì giữ link cũ (vẫn hiển thị); bấm lại nút để thử lại. Chép xong có thể xóa khối `old` trong `config.js`.
+
+### 6. Ghép nối Tivi
 1. Trên Tivi, mở `player.html`. Màn hình hiện mã 6 số.
 2. Trên trang quản trị, bấm **➕ Ghép nối Tivi**, nhập mã, đặt tên và chọn nhóm.
 

@@ -586,40 +586,79 @@ grant execute on function public.screen_verify_pin(text, text) to anon, authenti
 grant execute on function public.screen_claim(text, text, text, uuid) to authenticated;
 -- ---------------------------------------------------------------------
 -- 5) NHẬP DỮ LIỆU TỪ APP CŨ (chỉ gọi từ SQL Editor – xem export_tu_app_cu.sql)
+--    Chạy lại nhiều lần vẫn an toàn: phần nào đã nhập thì bỏ qua.
 -- ---------------------------------------------------------------------
-create or replace function public.import_v1(p_state jsonb, p_feeds jsonb default '[]'::jsonb)
-returns text language plpgsql volatile security definer set search_path = public as $$
-declare n int;
+drop function if exists public.import_v1(jsonb, jsonb);
+create or replace function public.import_v1(p jsonb)
+returns text language plpgsql volatile security definer set search_path = public, extensions as $$
+declare
+  st jsonb := coalesce(p->'state', '{}'::jsonb);
+  n_sl int := 0; n_fd int := 0; n_us int := 0; n_id int := 0; n_rl int := 0;
+  cols text; msg text := '';
 begin
-  if exists (select 1 from public.slides) then
-    raise exception 'Bảng slides đã có dữ liệu – không nhập lại để tránh bị trùng.';
+  -- a) Tài khoản đăng nhập (giữ nguyên id + mật khẩu đã mã hóa → user đăng nhập bằng mật khẩu cũ)
+  if jsonb_array_length(coalesce(p->'users','[]'::jsonb)) > 0 then
+    select string_agg(quote_ident(column_name), ', ' order by ordinal_position) into cols
+      from information_schema.columns
+     where table_schema = 'auth' and table_name = 'users' and is_generated = 'NEVER';
+    execute format('insert into auth.users (%1$s) select %1$s from jsonb_populate_recordset(null::auth.users, $1) on conflict do nothing', cols)
+      using p->'users';
+    get diagnostics n_us = row_count;
+    select string_agg(quote_ident(column_name), ', ' order by ordinal_position) into cols
+      from information_schema.columns
+     where table_schema = 'auth' and table_name = 'identities' and is_generated = 'NEVER';
+    execute format('insert into auth.identities (%1$s) select %1$s from jsonb_populate_recordset(null::auth.identities, $1) on conflict do nothing', cols)
+      using coalesce(p->'identities','[]'::jsonb);
+    get diagnostics n_id = row_count;
   end if;
+  -- b) Phân quyền (Owner giữ nguyên Admin)
+  update public.profiles pr set role = r->>'role'
+    from jsonb_array_elements(coalesce(p->'roles','[]'::jsonb)) r
+   where pr.id = (r->>'id')::uuid and not pr.is_owner and r->>'role' in ('admin','editor','creator','none')
+     and pr.role is distinct from r->>'role';
+  get diagnostics n_rl = row_count;
+  -- c) Mã PIN Tivi (bcrypt) – chỉ khi project mới chưa đặt PIN
+  if coalesce(p->>'pin_hash','') <> '' and not exists (select 1 from public.sig_secrets where id = 1 and pin_hash is not null) then
+    insert into public.sig_secrets (id, pin_hash) values (1, p->>'pin_hash')
+    on conflict (id) do update set pin_hash = excluded.pin_hash;
+    msg := msg || ' Đã chép mã PIN.';
+  end if;
+  -- d) Link lịch / Google Sheet bí mật (giữ nguyên id để slide lịch/KPI chạy luôn)
   insert into public.sig_feeds (id, kind, url, created_at)
   select (f->>'id')::uuid, f->>'kind', f->>'url', coalesce((f->>'created_at')::timestamptz, now())
-    from jsonb_array_elements(coalesce(p_feeds,'[]'::jsonb)) f
+    from jsonb_array_elements(coalesce(p->'feeds','[]'::jsonb)) f
    where f->>'kind' in ('ics','csv')
   on conflict (id) do update set kind = excluded.kind, url = excluded.url;
-  update public.sig_settings set
-    company  = coalesce(p_state->>'company',''),
-    ticker   = coalesce(p_state->>'ticker',''),
-    logo     = coalesce(p_state->>'logo',''),
-    lay      = case when p_state->>'lay' = 'side' then 'side' else 'full' end,
-    sidenote = coalesce(p_state->>'sidenote',''),
-    pin_lock = coalesce((p_state->>'pinLockEnabled')::boolean, false),
-    migrated = true, updated_at = now()
-  where id = 1;
-  insert into public.slides (sort, type, data, enabled, status, created_by_email, created_at)
-  select e.ord, e.val->>'type',
-         e.val - 'type' - 'on' - 'status' - 'local' - 'createdBy' - 'createdAt' - 'updatedBy' - 'reviewedBy' - 'reviewedAt',
-         coalesce((e.val->>'on')::boolean, true),
-         case when e.val->>'status' in ('pending','approved','rejected') then e.val->>'status' else 'approved' end,
-         e.val->>'createdBy', coalesce((e.val->>'createdAt')::timestamptz, now())
-    from jsonb_array_elements(coalesce(p_state->'slides','[]'::jsonb)) with ordinality as e(val, ord)
-   where jsonb_typeof(e.val) = 'object' and e.val ? 'type';
-  get diagnostics n = row_count;
-  return format('Đã nhập %s slide và %s nguồn lịch/KPI từ app cũ.', n, jsonb_array_length(coalesce(p_feeds,'[]'::jsonb)));
+  get diagnostics n_fd = row_count;
+  -- e) Cài đặt chung (1 lần)
+  if not (select migrated from public.sig_settings where id = 1) then
+    update public.sig_settings set
+      company  = coalesce(st->>'company',''),
+      ticker   = coalesce(st->>'ticker',''),
+      logo     = coalesce(st->>'logo',''),
+      lay      = case when st->>'lay' = 'side' then 'side' else 'full' end,
+      sidenote = coalesce(st->>'sidenote',''),
+      pin_lock = coalesce((st->>'pinLockEnabled')::boolean, false),
+      migrated = true, updated_at = now()
+    where id = 1;
+  end if;
+  -- f) Nội dung (chỉ khi project mới chưa có slide nào)
+  if not exists (select 1 from public.slides) then
+    insert into public.slides (sort, type, data, enabled, status, created_by_email, created_at)
+    select e.ord, e.val->>'type',
+           e.val - 'type' - 'on' - 'status' - 'local' - 'createdBy' - 'createdAt' - 'updatedBy' - 'reviewedBy' - 'reviewedAt',
+           coalesce((e.val->>'on')::boolean, true),
+           case when e.val->>'status' in ('pending','approved','rejected') then e.val->>'status' else 'approved' end,
+           e.val->>'createdBy', coalesce((e.val->>'createdAt')::timestamptz, now())
+      from jsonb_array_elements(coalesce(st->'slides','[]'::jsonb)) with ordinality as e(val, ord)
+     where jsonb_typeof(e.val) = 'object' and e.val ? 'type';
+    get diagnostics n_sl = row_count;
+  else
+    msg := msg || ' (Bỏ qua slide vì project mới đã có nội dung.)';
+  end if;
+  return format('✅ Đã nhập: %s tài khoản, %s phân quyền, %s slide, %s nguồn lịch/KPI.%s', n_us, n_rl, n_sl, n_fd, msg);
 end $$;
-revoke all on function public.import_v1(jsonb, jsonb) from public, anon, authenticated;
+revoke all on function public.import_v1(jsonb) from public, anon, authenticated;
 
 -- Kiểm tra
 select (select count(*) from public.slides) as so_slide,
