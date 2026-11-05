@@ -2,8 +2,14 @@
 <html lang="vi"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#211f6b">
+<meta name="theme-color" content="#074659">
 <title>ARON Signage – Quản trị</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/800.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/900.css">
 <link rel="stylesheet" href="signage.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js" integrity="sha256-LbKRLxaTmjshtHKYCnradGszpqQHCLxVXLC+JVxutbE=" crossorigin="anonymous"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -29,7 +35,7 @@
  .dot{width:10px;height:10px;border-radius:50%;background:#9aa6c8;flex:0 0 auto}.on .dot{background:#1a9e5a;box-shadow:0 0 0 4px rgba(26,158,90,.18)}.off .dot{background:#d92d20}.pa .dot{background:#c98a00}
  .scr-now{font-size:13px;background:var(--bg);border-radius:8px;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .scr .row{gap:6px;margin-top:6px}
- .tgt{font-size:11px;background:rgba(31,79,209,.08);color:var(--blue);border-color:rgba(31,79,209,.25)}
+ .tgt{font-size:11px;background:rgba(11,110,133,.08);color:var(--blue);border-color:rgba(11,110,133,.25)}
  .tgt.warn{background:#fde2e1;color:#b42318;border-color:#f5b5b0}
  .pick{max-height:180px;overflow:auto;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;margin-top:6px}
  .pick label{display:flex;align-items:center;gap:6px;margin:3px 0;color:var(--fg);font-size:14px;cursor:pointer}.pick input{width:auto}
@@ -43,23 +49,34 @@
  #err_bar{background:#fde2e1;color:#b42318;border:1px solid #f5b5b0}
  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.toolbar select,.toolbar input{width:auto;flex:1 1 180px}
  input::placeholder,textarea::placeholder{color:#9aa6c0;font-style:italic;opacity:1}
+ /* Theme ARON Teal */
+ .tabs{border-bottom:0;gap:8px;padding:4px 0}
+ .tabs button{border:0;border-radius:12px;margin:0;padding:10px 16px;color:#6b8088;background:transparent}
+ .tabs button:hover{background:#e6eef0;filter:none}
+ .tabs button.on{background:#074659;color:#fff;border:0;box-shadow:0 6px 16px rgba(7,70,89,.25)}
+ .tabs button.on .cnt{background:rgba(255,255,255,.18);border-color:transparent;color:#fff}
+ .stat{border:0;border-radius:16px;box-shadow:0 8px 24px rgba(7,70,89,.06)}
+ .scr{border-radius:16px;border-top-color:transparent;border-right-color:transparent;border-bottom-color:transparent;box-shadow:0 8px 24px rgba(7,70,89,.07)}
+ .chip{background:#fff;border-color:#e2eaec}.chip.on{background:#074659;border-color:#074659}
+ .scr-now{background:#f2f6f6}
+ #toast div.ok{background:#1a9e5a}
  .code-in{font-size:30px;letter-spacing:10px;text-align:center;font-weight:800}
  table.tb{width:100%;border-collapse:collapse;font-size:13px}table.tb th,table.tb td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}table.tb th{color:var(--mu);font-weight:600;font-size:12px}table.tb td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
  .bars{display:flex;align-items:flex-end;gap:4px;height:140px;padding:8px 0;border-bottom:1px solid var(--bd);overflow-x:auto}
  .bars .b{flex:1 0 18px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:10px;color:var(--mu)}
  .bars .b i{display:block;width:70%;background:linear-gradient(180deg,var(--orange2),var(--orange));border-radius:4px 4px 0 0;min-height:2px}
  .cal{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr));border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:12px;background:var(--card)}
- .cal .hd{padding:8px 4px;text-align:center;font-weight:700;background:var(--bg);border-bottom:1px solid var(--bd)}.cal .hd.today{color:var(--orange);background:rgba(255,122,0,.08)}
+ .cal .hd{padding:8px 4px;text-align:center;font-weight:700;background:var(--bg);border-bottom:1px solid var(--bd)}.cal .hd.today{color:var(--orange);background:rgba(245,113,7,.08)}
  .cal .ad{padding:4px;border-bottom:1px solid var(--bd);border-left:1px solid var(--bd);min-height:34px;display:flex;flex-direction:column;gap:3px}
  .cal .lbl{padding:4px;color:var(--mu);border-bottom:1px solid var(--bd);font-size:11px}
- .cal .col{position:relative;border-left:1px solid var(--bd)}.cal .col.today{background:rgba(255,122,0,.04)}
+ .cal .col{position:relative;border-left:1px solid var(--bd)}.cal .col.today{background:rgba(245,113,7,.04)}
  .cal .hr{height:36px;border-bottom:1px dashed var(--bd);box-sizing:border-box}.cal .hl{height:36px;color:var(--mu);font-size:11px;padding:2px 4px;box-sizing:border-box;border-bottom:1px dashed var(--bd)}
  .ev{position:absolute;border-radius:6px;padding:2px 5px;font-size:11px;line-height:1.25;overflow:hidden;color:#fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.4)}
  .chipev{border-radius:6px;padding:2px 6px;font-size:11px;color:#fff;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .ev.pend,.chipev.pend{opacity:.6;background-image:repeating-linear-gradient(45deg,transparent 0 6px,rgba(255,255,255,.25) 6px 12px)}
  .nowline{position:absolute;left:0;right:0;height:2px;background:#d92d20;z-index:3}
  .au{display:flex;gap:10px;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:13px;align-items:flex-start}.au .w{flex:0 0 120px;color:var(--mu);font-size:12px}.au .d{flex:1;min-width:0}.au .d small{color:var(--mu)}
- .au .ac{font-weight:700}.au .ac.INSERT{color:#1a9e5a}.au .ac.UPDATE{color:#1f4fd1}.au .ac.DELETE{color:#d92d20}
+ .au .ac{font-weight:700}.au .ac.INSERT{color:#1a9e5a}.au .ac.UPDATE{color:#0b6e85}.au .ac.DELETE{color:#d92d20}
  #toast{position:fixed;right:16px;bottom:16px;z-index:120;display:flex;flex-direction:column;gap:8px}#toast div{background:#b42318;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:360px;font-size:14px}
  #off_bar{background:#fde2e1;color:#b42318;border:1px solid #f5b5b0;margin-bottom:12px}
 
@@ -883,7 +900,7 @@ async function delHost(h){if(!confirm(`Xóa "${h}"? Các slide lấy dữ liệu
 
 /* ================= CẢNH BÁO TIVI MẤT KẾT NỐI ================= */
 const prevState=new Map();let offlineReady=false;
-function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t)}const d=document.createElement('div');d.textContent=msg;t.appendChild(d);setTimeout(()=>d.remove(),10000)}
+function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t)}const d=document.createElement('div');d.textContent=msg;if(/^✅/.test(msg))d.className='ok';t.appendChild(d);setTimeout(()=>d.remove(),10000)}
 function checkOffline(){
  const off=DB.screens.filter(s=>scrState(s)==='off'),bar=$('#off_bar');
  if(bar){bar.hidden=!off.length;bar.innerHTML=off.length?`⚠️ ${off.length} màn hình đang mất kết nối: `+off.map(s=>`<b>${esc(s.name)}</b> (${rel(s.last_seen)})`).join(', '):''}
@@ -903,7 +920,7 @@ async function enableNotify(){
 
 /* ================= LỊCH PHÁT TUẦN ================= */
 let calOffset=0;
-const TYPE_COLOR={welcome:'#2a64d6',meeting:'#1a9e8f',event:'#e0412f',video:'#7b5cf0',image:'#0b5394',text:'#c45500',countdown:'#b8860b',clock:'#5d6b8a',calendar:'#1a9e5a',room:'#1a9e5a',weather:'#30a0d0',kpi:'#211f6b',web:'#555',birthday:'#ff5c8a',qr:'#333',news:'#8a3ffc'};
+const TYPE_COLOR={welcome:'#0a566d',meeting:'#1a9e8f',event:'#be4030',video:'#7b5cf0',image:'#0b5394',text:'#c45500',countdown:'#b8860b',clock:'#5d6b8a',calendar:'#1a9e5a',room:'#1a9e5a',weather:'#30a0d0',kpi:'#074659',web:'#555',birthday:'#ff5c8a',qr:'#333',news:'#8a3ffc'};
 function calWeek(d){calOffset=d?calOffset+d:0;renderCal()}
 function calScopeOptions(){const v=$('#cal_scope').value;
  $('#cal_scope').innerHTML='<option value="">📄 Tất cả nội dung</option>'+DB.screens.map(s=>`<option value="s:${s.id}">📺 ${esc(s.name)}</option>`).join('');

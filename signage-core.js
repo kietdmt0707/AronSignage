@@ -2,7 +2,7 @@
    ARON Signage v2 – Lõi dùng chung cho player.html và admin.html
    (hiển thị slide, lịch ICS, thời tiết, KPI, âm thanh khẩn cấp, bộ nhớ offline)
    ===================================================================== */
-const APP_VERSION='2.2.0';
+const APP_VERSION='2.3.0';
 // Thông tin kết nối lấy từ config.js (mỗi môi trường/project Supabase một file riêng)
 const CFG=window.SIGNAGE_CONFIG||{};
 const SB_URL=String(CFG.url||'').replace(/\/+$/,'');
@@ -12,7 +12,7 @@ const BUMP_CHANNEL='aron-signage-bump';
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const KINDS={birthday:['🎂','Chúc mừng sinh nhật','#ff7eb3,#ff758c'],kickoff:['🚀','Khởi động dự án','#4facfe,#00c6fb'],golive:['✅','Chúc mừng Go-live','#43e97b,#1a9e8f'],client:['🤝','Chào đón khách hàng mới','#fa709a,#f6a623'],team:['🏕️','Team building','#f093fb,#7b5cf0'],trip:['🏖️','Nghỉ dưỡng','#30cfd0,#330867'],sport:['⚽','Sự kiện thể thao','#f7971e,#e0412f'],other:['🎉','Thông báo','#667eea,#764ba2']};
+const KINDS={birthday:['🎂','Chúc mừng sinh nhật','#ff9a3c,#f57107'],kickoff:['🚀','Khởi động dự án','#0b6e85,#053f50'],golive:['✅','Chúc mừng Go-live','#1e9e7a,#0a5c4c'],client:['🤝','Chào đón khách hàng mới','#f1b13f,#f57107'],team:['🏕️','Team building','#0a566d,#3d9bb0'],trip:['🏖️','Nghỉ dưỡng','#3d9bb0,#074659'],sport:['⚽','Sự kiện thể thao','#f57107,#be4030'],other:['🎉','Thông báo','#074659,#0a566d']};
 const LBL={welcome:'Chào khách',meeting:'Lịch họp',event:'Sự kiện',video:'Video',image:'Ảnh',text:'Thông báo',countdown:'Đếm ngược',clock:'Đồng hồ',calendar:'Lịch tự động',room:'Phòng họp',weather:'Thời tiết',kpi:'KPI',web:'Trang web',birthday:'Sinh nhật',qr:'Mã QR',news:'Tin tức'};
 
 function safeImg(u){

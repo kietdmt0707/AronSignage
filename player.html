@@ -2,8 +2,14 @@
 <html lang="vi"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a0930">
+<meta name="theme-color" content="#042b36">
 <title>ARON Signage – Tivi</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/800.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/900.css">
 <link rel="stylesheet" href="signage.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js" integrity="sha256-LbKRLxaTmjshtHKYCnradGszpqQHCLxVXLC+JVxutbE=" crossorigin="anonymous"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -11,11 +17,11 @@
 <script src="vendor/qrcode.js"></script>
 <script src="signage-core.js"></script>
 <style>
- html,body{background:#0a0930;overflow:hidden}
+ html,body{background:#042b36;overflow:hidden}
  .full{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:4vw;background:var(--brand)}
  .full[hidden]{display:none}
- .pbrand{font-size:3.2vw;font-weight:900;letter-spacing:.1vw;text-shadow:0 .3vw 1.5vw rgba(10,20,90,.4)}.pbrand .script{color:var(--orange);font-size:3.8vw;margin-left:.6vw}
- .pcard{margin-top:3vw;background:rgba(14,13,58,.72);border:1px solid rgba(255,255,255,.25);border-radius:2vw;padding:3vw 5vw;backdrop-filter:blur(8px);box-shadow:0 2vw 6vw rgba(0,0,0,.35)}
+ .pbrand{font-size:3.2vw;font-weight:900;letter-spacing:.1vw;text-shadow:0 .3vw 1.5vw rgba(5,53,68,.4)}.pbrand .script{color:var(--orange);font-size:3.8vw;margin-left:.6vw}
+ .pcard{margin-top:3vw;background:rgba(4,43,54,.72);border:1px solid rgba(255,255,255,.25);border-radius:2vw;padding:3vw 5vw;backdrop-filter:blur(8px);box-shadow:0 2vw 6vw rgba(0,0,0,.35)}
  .plbl{font-size:1.6vw;letter-spacing:.4vw;opacity:.85;text-transform:uppercase}
  .pcode{font-size:11vw;font-weight:900;letter-spacing:2.5vw;margin-left:2.5vw;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums}
  .psteps{margin-top:2vw;font-size:1.7vw;line-height:1.7;text-align:left;opacity:.95}.psteps b{color:var(--orange2)}
@@ -24,8 +30,8 @@
  #pause .pcard{min-width:40vw}
  #pause button{font-size:1.6vw;padding:1vw 2.4vw;margin:.6vw;border-radius:1vw;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4)}
  #pause button.o{background:linear-gradient(135deg,var(--orange),var(--orange2));border-color:var(--orange)}
- #pin_dlg{width:min(92vw,380px);border:1px solid var(--bd);border-radius:12px;padding:20px;text-align:center;background:#16154a;color:#fff}
- #pin_dlg input{text-align:center;font-size:22px;letter-spacing:6px;margin:12px 0;background:#0c0b2c;color:#fff}
+ #pin_dlg{width:min(92vw,380px);border:1px solid var(--bd);border-radius:12px;padding:20px;text-align:center;background:#0b2f3a;color:#fff}
+ #pin_dlg input{text-align:center;font-size:22px;letter-spacing:6px;margin:12px 0;background:#06222b;color:#fff}
  #pin_dlg button{margin:4px}
  #fs_tip{position:fixed;top:1.5vw;left:50%;transform:translateX(-50%);z-index:45;background:rgba(0,0,0,.65);color:#fff;padding:.6vw 1.4vw;border-radius:2vw;font-size:1.2vw}
  #fs_tip[hidden]{display:none}
