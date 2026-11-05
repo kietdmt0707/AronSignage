@@ -103,7 +103,7 @@ async function ping(){
   if(r.now)syncClock(r.now);
   if(r.status==='unknown')r=await rpc('screen_register',{p_token:token});
   lastOk=Date.now();setOffline(false);
-  if(r.status==='pending'){man=null;rev=null;IDB.del('kv','manifest').catch(()=>{});plStop();$('#pause').hidden=true;showCode(r.code);return}
+  if(r.status==='pending'){man=null;rev=null;IDB.del('kv','manifest').catch(()=>{});plStop();$('#pause').hidden=true;showCode(r.code);setTimeout(ping,5000);return} // đang chờ ghép nối → hỏi lại sau 5 giây
   if(r.status==='disabled'){plStop();showPair('<div class="plbl">Màn hình đang tạm ngưng</div><div class="pmsg">Admin đã tạm ngưng phát trên màn hình này</div>');return}
   if(r.status==='active'){
    if(!man||r.rev!==rev)await loadManifest();

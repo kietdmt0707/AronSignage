@@ -42,6 +42,7 @@
  .al .t{flex:1;min-width:0}.lv{width:10px;height:36px;border-radius:4px}.lv.red{background:#b00020}.lv.orange{background:#c45500}.lv.blue{background:#0b5394}
  #err_bar{background:#fde2e1;color:#b42318;border:1px solid #f5b5b0}
  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.toolbar select,.toolbar input{width:auto;flex:1 1 180px}
+ input::placeholder,textarea::placeholder{color:#9aa6c0;font-style:italic;opacity:1}
  .code-in{font-size:30px;letter-spacing:10px;text-align:center;font-weight:800}
  table.tb{width:100%;border-collapse:collapse;font-size:13px}table.tb th,table.tb td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}table.tb th{color:var(--mu);font-weight:600;font-size:12px}table.tb td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
  .bars{display:flex;align-items:flex-end;gap:4px;height:140px;padding:8px 0;border-bottom:1px solid var(--bd);overflow-x:auto}
@@ -134,30 +135,35 @@
     <div id="xbox"><label id="xl">Nội dung</label><textarea id="extra" rows="4"></textarea></div>
     <div id="fitbox" style="display:none"><label>Cách hiển thị ảnh</label><select id="fit"><option value="contain">Vừa khung (thấy toàn bộ ảnh, có thể có viền đen)</option><option value="cover">Phủ kín màn hình (có thể cắt mép ảnh)</option></select></div>
     <div id="ibox"><label id="il">Ảnh nền (tùy chọn)</label><div class="row" style="flex-wrap:nowrap"><input id="img" type="file" accept="image/*" style="flex:1"><button type="button" onclick="pickImg()">📚 Thư viện</button></div><div class="row" style="margin-top:4px"><span class="hint" id="imgst"></span><button type="button" class="sm" id="img_clear" style="display:none" onclick="imgData='';$('#imgst').textContent='';this.style.display='none'">Bỏ ảnh</button><label style="display:inline-flex;align-items:center;gap:4px;margin:0;cursor:pointer"><input type="checkbox" id="imgov" style="width:auto" checked> 🌙 Phủ lớp tối ảnh nền (giúp nổi bật chữ)</label></div></div>
-    <div id="vbox"><label>Link video (.mp4 hoặc link YouTube)</label><div class="row" style="flex-wrap:nowrap"><input id="vurl" placeholder="https://youtu.be/... hoặc https://.../video.mp4" style="flex:1"><button type="button" onclick="pickVid()">📚 Thư viện</button></div><label style="display:inline-flex;align-items:center;gap:6px;margin:6px 0;cursor:pointer;font-weight:bold"><input type="checkbox" id="vsound" style="width:auto"> 🔊 Bật âm thanh video (Tắt = tự phát ổn định, không bị chặn)</label><label style="display:inline-flex;align-items:center;gap:6px;margin:6px 0;cursor:pointer"><input type="checkbox" id="ytcrop" style="width:auto" checked> ✂️ YouTube: phóng to ~16% để ẩn tên kênh, logo và phụ đề</label><label>Hoặc tải file video lên thư viện (MP4/WebM, tối đa 50 MB)</label><input id="vfile" type="file" accept="video/mp4,video/webm"><span class="hint">Video MP4 được lưu sẵn trên Tivi để phát cả khi mất mạng. YouTube cần có mạng.</span></div>
-    <div id="webbox"><label>Link trang web (https://)</label><input id="wurl" placeholder="https://app.powerbi.com/view?r=... hoặc https://docs.google.com/presentation/d/e/.../embed"><div class="grid" style="gap:10px"><div><label>Thu phóng (%)</label><input id="zoom" type="number" min="25" max="300" value="100"></div><div></div></div><span class="hint">Dùng link "Nhúng/Embed" hoặc "Publish to web". Một số trang chặn nhúng (hiện trang trắng) – khi đó không hiển thị được. Cần có mạng.</span></div>
+    <div id="vbox"><label>Link video (.mp4 hoặc link YouTube)</label><div class="row" style="flex-wrap:nowrap"><input id="vurl" placeholder="VD: https://youtu.be/... hoặc https://.../video.mp4" style="flex:1"><button type="button" onclick="pickVid()">📚 Thư viện</button></div><label style="display:inline-flex;align-items:center;gap:6px;margin:6px 0;cursor:pointer;font-weight:bold"><input type="checkbox" id="vsound" style="width:auto"> 🔊 Bật âm thanh video (Tắt = tự phát ổn định, không bị chặn)</label><label style="display:inline-flex;align-items:center;gap:6px;margin:6px 0;cursor:pointer"><input type="checkbox" id="ytcrop" style="width:auto" checked> ✂️ YouTube: phóng to ~16% để ẩn tên kênh, logo và phụ đề</label><label>Hoặc tải file video lên thư viện (MP4/WebM, tối đa 50 MB)</label><input id="vfile" type="file" accept="video/mp4,video/webm"><span class="hint">Video MP4 được lưu sẵn trên Tivi để phát cả khi mất mạng. YouTube cần có mạng.</span></div>
+    <div id="webbox"><label>Link trang web (https://)</label><input id="wurl" placeholder="VD: https://app.powerbi.com/view?r=... hoặc https://docs.google.com/presentation/d/e/.../embed"><div class="grid" style="gap:10px"><div><label>Thu phóng (%)</label><input id="zoom" type="number" min="25" max="300" value="100"></div><div></div></div><span class="hint">Dùng link "Nhúng/Embed" hoặc "Publish to web". Một số trang chặn nhúng (hiện trang trắng) – khi đó không hiển thị được. Cần có mạng.</span></div>
     <div class="grid" style="gap:10px"><div><label id="durlbl">Thời gian hiển thị (giây)</label><input id="dur" type="number" min="0" value="10"></div>
      <div><label>Hiển thị từ ngày</label><input id="from" type="date"></div></div>
     <label>Đến hết ngày (để trống = luôn hiện)</label><input id="to" type="date">
     <label>Chỉ hiện vào các thứ</label><div class="row" id="days"></div>
     <div class="grid" style="gap:10px"><div><label>Từ giờ</label><input id="t1" type="time"></div><div><label>Đến giờ</label><input id="t2" type="time"></div></div>
     <div id="cbox"><label>Thời điểm diễn ra (cho Đếm ngược)</label><input id="target" type="datetime-local"></div>
-    <div id="calbox"><label>Link lịch ICS (Google Calendar / Outlook)</label><input id="icsurl" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"><span class="hint">Google Calendar: Cài đặt lịch → "Địa chỉ bí mật ở định dạng iCal". Outlook: Lịch → Lịch được chia sẻ → Xuất bản lịch → link ICS. Link được cất riêng, Tivi không xem được; màn hình chỉ hiện giờ, tiêu đề, phòng.</span></div>
+    <div id="calbox"><label>Link lịch ICS (Google Calendar / Outlook)</label><input id="icsurl" placeholder="VD: https://calendar.google.com/calendar/ical/.../basic.ics"><span class="hint">Google Calendar: Cài đặt lịch → "Địa chỉ bí mật ở định dạng iCal". Outlook: Lịch → Lịch được chia sẻ → Xuất bản lịch → link ICS. Link được cất riêng, Tivi không xem được; màn hình chỉ hiện giờ, tiêu đề, phòng.</span></div>
     <div id="wbox"><label>Thành phố</label><input id="wcity" placeholder="VD: Hồ Chí Minh, Hà Nội, Đà Nẵng"></div>
     <div id="kpibox"><label>Nguồn dữ liệu KPI</label><select id="kpisrc" onchange="kpiSrc();fields()"><option value="manual">✍️ Nhập tay</option><option value="sheet">📗 Google Sheet (Xuất bản lên web dạng CSV)</option><option value="custom">🔌 Nguồn tùy chỉnh – Oracle BI Publisher / ORDS / API (CSV hoặc JSON)</option></select>
-     <div id="kpiurlbox"><label>Link dữ liệu</label><input id="kpiurl" placeholder="https://..."></div>
+     <div id="kpiurlbox"><label>Link dữ liệu</label><input id="kpiurl" placeholder="VD: https://..."></div>
      <div id="kpiauth" class="grid" style="gap:10px"><div><label>Tài khoản (nếu nguồn cần đăng nhập)</label><input id="kpiuser" autocomplete="off" placeholder="VD: signage_report"></div><div><label>Mật khẩu</label><input id="kpipass" type="password" autocomplete="new-password" placeholder="Để trống = giữ mật khẩu đã lưu"></div></div>
      <span class="hint" id="kpihint"></span></div>
-    <div id="bdbox"><label>Link Google Sheet danh sách nhân viên (CSV)</label><input id="bdurl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+    <div id="bdbox"><label>Link Google Sheet danh sách nhân viên (CSV)</label><input id="bdurl" placeholder="VD: https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
      <span class="hint">Các cột: <b>Họ tên | Ngày sinh | Phòng ban | Link ảnh (tùy chọn)</b>. Ngày sinh dạng 25/12, 25/12/1990 hoặc 1990-12-25. Google Sheet → Tệp → Chia sẻ → Xuất bản lên web → CSV. Tự cập nhật mỗi 10 phút. Hoặc nhập tay ở ô bên trên.</span>
      <label>Hiển thị</label><select id="bmode"><option value="day">🎉 Người có sinh nhật HÔM NAY (không có ai thì tự bỏ qua slide)</option><option value="week">📅 Sinh nhật trong 7 ngày tới</option><option value="month">🗓️ Sinh nhật cả tháng này</option></select></div>
     <div id="qrbox"><label>Nội dung mã QR (link hoặc chữ)</label><input id="qrurl" placeholder="VD: https://forms.office.com/r/... hoặc WIFI:T:WPA;S:Guest;P:12345678;;">
      <span class="hint">Mã QR được tạo ngay trên Tivi (không cần mạng). Mẹo wifi: <code>WIFI:T:WPA;S:TênWifi;P:MậtKhẩu;;</code> – khách quét là vào được wifi.</span></div>
-    <div id="newsbox"><label>Link RSS</label><input id="rssurl" placeholder="https://vnexpress.net/rss/tin-moi-nhat.rss">
+    <div id="newsbox"><label>Link RSS</label><input id="rssurl" placeholder="VD: https://vnexpress.net/rss/tin-moi-nhat.rss">
      <div class="grid" style="gap:10px"><div><label>Số tin hiển thị</label><input id="ncount" type="number" min="3" max="8" value="5"></div><div></div></div>
      <span class="hint">Tên miền của báo phải có trong Cài đặt chung → Nguồn dữ liệu được phép (đã có sẵn VnExpress, Tuổi Trẻ, Thanh Niên, CafeF, VietNamNet). Cập nhật mỗi 10 phút.</span></div>
 
 
+    <h3 style="margin:16px 0 4px">🧩 Vùng hiển thị &amp; ưu tiên</h3>
+    <div class="grid" style="gap:10px"><div><label>Vùng hiển thị</label><select id="zone"><option value="main">▭ Vùng chính (lớn)</option><option value="side">◨ Vùng phụ (cột phải / nửa phải)</option></select></div><div></div></div>
+    <span class="hint">Vùng phụ chỉ có ở màn hình đặt bố cục "cột phải phát Vùng phụ" hoặc "Chia đôi" (Cài đặt chung hoặc ✏️ Sửa màn hình). Màn hình bố cục khác sẽ phát nội dung này ở vùng chính. Vùng phụ không phát video.</span>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--fg);font-weight:600;cursor:pointer"><input type="checkbox" id="prio" style="width:auto"> ⚡ Ưu tiên chen ngang</label>
+    <span class="hint">Trong khung ngày/giờ của nội dung này, màn hình <b>chỉ phát các nội dung ưu tiên</b>, các nội dung khác tạm dừng và tự phát lại khi hết giờ. VD: thông báo họp giao ban, đặt Từ giờ 08:00 – Đến giờ 08:15.</span>
     <h3 style="margin:16px 0 4px">📺 Phát ở đâu?</h3>
     <div class="radio"><label><input type="radio" name="tmode" value="all" checked onchange="tgtMode()"> 🌐 Tất cả màn hình</label><label><input type="radio" name="tmode" value="some" onchange="tgtMode()"> 🎯 Chọn nhóm / màn hình</label></div>
     <div id="tgt_pick" class="pick" hidden></div>
@@ -209,7 +215,7 @@
     <label>Tên công ty (hiện góc dưới)</label><input id="co_in">
     <label>Logo công ty (hiện góc màn hình)</label><input id="logo_in" type="file" accept="image/*"><div class="row" style="margin-top:4px"><span class="hint" id="logost"></span><button id="del_logo" class="sm" style="display:none" onclick="setLogo('')">Xóa logo</button></div>
     <label>Dòng chữ chạy mặc định</label><input id="tk_in">
-    <label>Bố cục mặc định</label><select id="lay"><option value="full">Toàn màn hình (1 vùng)</option><option value="side">Chia vùng: nội dung chính (70%) + cột bên phải (30%)</option></select>
+    <label>Bố cục mặc định</label><select id="lay"><option value="full">▭ Toàn màn hình (1 vùng)</option><option value="side">◨ Chính 70% + cột phải: đồng hồ, lịch họp, ghi chú</option><option value="side_play">◨ Chính 70% + cột phải phát nội dung "Vùng phụ"</option><option value="split">◫ Chia đôi 50/50: trái Vùng chính – phải Vùng phụ</option></select>
     <label>Ghi chú ở cột bên phải</label><input id="sidenote" placeholder="VD: Wifi khách: Guest / 12345678">
     <p class="hint">Từng màn hình có thể ghi đè dòng chữ chạy, bố cục, ghi chú riêng (tab Màn hình → ✏️ Sửa).</p>
     <button class="p" onclick="saveSettings()">💾 Lưu cài đặt</button>
@@ -266,7 +272,7 @@
  <div class="grid" style="gap:10px"><div><label>Nhóm</label><select id="sd_group"></select></div><div><label>Trạng thái</label><select id="sd_status"><option value="active">✅ Đang hoạt động</option><option value="disabled">⏸ Tạm ngưng phát</option></select></div></div>
  <h3 style="margin:14px 0 0">Ghi đè riêng cho màn này <span class="hint">(để trống = dùng cài đặt chung)</span></h3>
  <label>Dòng chữ chạy</label><input id="sd_ticker">
- <div class="grid" style="gap:10px"><div><label>Bố cục</label><select id="sd_lay"><option value="">— Theo cài đặt chung —</option><option value="full">Toàn màn hình</option><option value="side">Chia vùng 70/30</option></select></div><div><label>Ghi chú cột phải</label><input id="sd_side"></div></div>
+ <div class="grid" style="gap:10px"><div><label>Bố cục</label><select id="sd_lay"><option value="">— Theo cài đặt chung —</option><option value="full">▭ Toàn màn hình (1 vùng)</option><option value="side">◨ Chính 70% + cột phải: đồng hồ, lịch họp, ghi chú</option><option value="side_play">◨ Chính 70% + cột phải phát nội dung "Vùng phụ"</option><option value="split">◫ Chia đôi 50/50: trái Vùng chính – phải Vùng phụ</option></select></div><div><label>Ghi chú cột phải</label><input id="sd_side"></div></div>
  <div class="hint" id="sd_info" style="margin-top:10px"></div>
  <div class="row" style="margin-top:14px"><button class="p" onclick="saveScreen()">Lưu</button><span style="flex:1"></span><button style="color:#d92d20" onclick="deleteScreen()">🗑 Gỡ màn hình</button></div>
 </dialog>
@@ -466,7 +472,7 @@ function renderScreens(){
    <div class="row">
     <button class="sm" onclick="previewScreen('${s.id}')" title="Xem màn này đang phát gì">👁 Xem</button>
     ${can('cmd')?`<button class="sm" onclick="sendCmd('${s.id}','identify')" title="Hiện tên trên Tivi 15 giây">🔆 Nhận diện</button><button class="sm" onclick="sendCmd('${s.id}','next')" title="Chuyển slide tiếp">⏭</button><button class="sm" onclick="sendCmd('${s.id}','reload')" title="Tải lại trang trên Tivi">🔄</button>`:''}
-    ${can('screens')?`<button class="sm" onclick="editScreen('${s.id}')">✏️ Sửa</button>`:''}
+    ${can('screens')?`<button class="sm" onclick="editScreen('${s.id}')">✏️ Sửa</button>`:''}${can('screens')&&st==='off'?`<button class="sm" style="color:#d92d20" onclick="removeScreen('${s.id}')" title="Gỡ màn hình này khỏi hệ thống">🗑 Gỡ</button>`:''}
    </div></div>`}).join('');
 }
 const playerURL=()=>location.href.replace(/admin\.html.*$/,'player.html').replace(/\/(\?.*)?$/,'/player.html');
@@ -501,10 +507,11 @@ async function saveScreen(){
  try{const r=await q(sb.from('screens').update(row).eq('id',id).select('id'));if(!r.length)throw new Error('Không có quyền');$('#scr_dlg').close();bump();await loadScreens();renderGroupChips()}
  catch(e){fail(e,'Không lưu được')}
 }
-async function deleteScreen(){
- const id=$('#sd_id').value,s=DB.screens.find(x=>x.id===id);
+async function deleteScreen(){return removeScreen($('#sd_id').value)}
+async function removeScreen(id){
+ const s=DB.screens.find(x=>x.id===id);
  if(!confirm(`Gỡ màn hình "${s&&s.name}"?\nTivi sẽ quay về màn hình hiện mã ghép nối.`))return;
- try{await q(sb.from('screens').delete().eq('id',id));$('#scr_dlg').close();bump();
+ try{await q(sb.from('screens').delete().eq('id',id));if($('#scr_dlg').open)$('#scr_dlg').close();bump();
   DB.slides.filter(x=>(x.target_screens||[]).includes(id)).forEach(x=>sb.from('slides').update({target_screens:x.target_screens.filter(v=>v!==id)}).eq('id',x.id).then(()=>{}));
   await loadScreens();renderGroupChips()}
  catch(e){fail(e,'Không gỡ được')}
@@ -575,12 +582,13 @@ function renderSlides(){
   const canEditThis=canE||(mine&&st==='pending');
   const info=[r.created_by_email&&('Tạo: '+r.created_by_email),r.updated_by_email&&('Sửa: '+r.updated_by_email),r.reviewed_by_email&&('Duyệt: '+r.reviewed_by_email)].filter(Boolean).join(' · ');
   const sched=[d.from||d.to?`📆 ${d.from||'…'} → ${d.to||'…'}`:'',d.t1||d.t2?`🕘 ${d.t1||'…'}–${d.t2||'…'}`:'',d.days&&d.days.length<7?'📅 '+d.days.map(x=>['CN','T2','T3','T4','T5','T6','T7'][x]).join(','):''].filter(Boolean).join(' ');
+  const ztags=(d.priority?'<span class="tag" style="background:#fff3cd;color:#8a6d00;border-color:#f0d36b">⚡ Ưu tiên</span>':'')+(d.zone==='side'?'<span class="tag">◨ Vùng phụ</span>':'');
   return`<div class="it ${r.enabled&&st==='approved'?'':'off'}" data-id="${r.id}" ${dragOK?'draggable="true"':''} title="${esc(info)}" style="flex-wrap:wrap">
    ${dragOK?'<span class="dh" title="Kéo để sắp xếp">⋮⋮</span>':''}<input type="checkbox" style="width:auto" ${r.enabled?'checked':''} ${canE?'':'disabled'} onchange="toggleSlide('${r.id}',this.checked)" title="Bật/tắt">
    <span class="tag">${esc(LBL[r.type]||r.type)}</span>${stTag}<span class="t">${esc(d.title||d.wname||d.wurl||d.vurl||LBL[r.type]||'')}</span>
    <button class="sm" onclick="previewRow('${r.id}')" title="Xem trước">👁</button>${apr}
    ${canEditThis?`<button class="sm" onclick="ed('${r.id}')">Sửa</button>`:''}${can('create')?`<button class="sm" onclick="dup('${r.id}')" title="Nhân bản">⧉</button>`:''}${can('delete')||(mine&&st==='pending')?`<button class="sm" onclick="delSlide('${r.id}')">Xóa</button>`:''}
-   <div style="flex-basis:100%;display:flex;gap:4px;flex-wrap:wrap;padding-left:${dragOK?44:24}px">${tgtTags(r)}${sched?`<span class="tag">${esc(sched)}</span>`:''}</div></div>`;
+   <div style="flex-basis:100%;display:flex;gap:4px;flex-wrap:wrap;padding-left:${dragOK?44:24}px">${tgtTags(r)}${ztags}${sched?`<span class="tag">${esc(sched)}</span>`:''}</div></div>`;
  }).join('');
 }
 async function patchSlide(id,row){const r=await q(sb.from('slides').update(row).eq('id',id).select());if(!r.length)throw new Error('Không có quyền sửa nội dung này');const i=DB.slides.findIndex(x=>x.id===id);if(i>=0)DB.slides[i]=r[0];bump();return r[0]}
@@ -625,7 +633,7 @@ function renderTargetPick(r){
  $('#tgt_pick').innerHTML=pickHTML('t',r?r.target_groups||[]:[],r?r.target_screens||[]:[]);tgtMode();
 }
 function reset(){edit=null;imgData='';$('#ft').textContent='Thêm nội dung';$('#save_btn').textContent='Lưu';
- ['title','sub','extra','vurl','from','to','t1','t2','target','icsurl','wcity','kpiurl','wurl','kpiuser','kpipass','bdurl','qrurl','rssurl'].forEach(i=>$('#'+i).value='');$('#kpisrc').value='manual';$('#bmode').value='day';$('#ncount').value=5;kpiSrc();$('#zoom').value=100;
+ ['title','sub','extra','vurl','from','to','t1','t2','target','icsurl','wcity','kpiurl','wurl','kpiuser','kpipass','bdurl','qrurl','rssurl'].forEach(i=>$('#'+i).value='');$('#kpisrc').value='manual';$('#zone').value='main';$('#prio').checked=false;$('#bmode').value='day';$('#ncount').value=5;kpiSrc();$('#zoom').value=100;
  setDays();$('#imgst').textContent='';$('#img_clear').style.display='none';$('#img').value='';$('#vfile').value='';$('#imgov').checked=true;$('#vsound').checked=false;$('#ytcrop').checked=true;$('#dur').value=10;fields();renderTargetPick(null)}
 function ed(id){
  const r=DB.slides.find(x=>x.id===id);if(!r)return;reset();edit=id;const s=r.data||{};
@@ -633,8 +641,9 @@ function ed(id){
  ['title','sub','extra','dur','from','to','t1','t2','target','wurl','wcity'].forEach(k=>{if(s[k]!=null)$('#'+k).value=s[k]});$('#zoom').value=s.zoom||100;
  setDays(s.days);$('#vurl').value=s.vurl||'';$('#vsound').checked=!!s.sound;$('#ytcrop').checked=s.ytcrop!==false;$('#fit').value=s.fit||'contain';$('#imgov').checked=s.imgov!==false;
  imgData=s.img||'';$('#imgst').textContent=imgData?'Giữ ảnh hiện tại':'';$('#img_clear').style.display=imgData?'':'none';
+ $('#zone').value=s.zone==='side'?'side':'main';$('#prio').checked=!!s.priority;
  if(s.bmode)$('#bmode').value=s.bmode;if(s.qrurl)$('#qrurl').value=s.qrurl;if(s.count)$('#ncount').value=s.count;
- if(s.feed)sb.from('sig_feeds').select('url').eq('id',s.feed).maybeSingle().then(({data})=>{if(!data||edit!==id)return;const box={kpi:'#kpiurl',birthday:'#bdurl',news:'#rssurl'}[r.type]||'#icsurl';$(box).value=data.url;
+ if(s.feed)sb.from('sig_feeds').select('url').eq('id',s.feed).maybeSingle().then(({data})=>{if(edit!==id)return;if(!data){toast('⚠️ Không đọc được link nguồn đã lưu của nội dung này – hãy nhập lại link rồi Lưu.');return}const box={kpi:'#kpiurl',birthday:'#bdurl',news:'#rssurl'}[r.type]||'#icsurl';$(box).value=data.url;
   if(r.type==='kpi'){$('#kpisrc').value=/^https:\/\/docs\.google\.com\//i.test(data.url)?'sheet':'custom';kpiSrc();if($('#kpisrc').value==='custom')sb.rpc('feed_auth_user',{p_feed:s.feed}).then(({data:u})=>{if(edit===id)$('#kpiuser').value=u||''})}});
  renderTargetPick(r);
  $('#tabs button[data-tab=content]').click();$('#add_card').scrollIntoView({behavior:'smooth',block:'start'});
@@ -642,12 +651,13 @@ function ed(id){
 function val(){return{kind:$('#kind').value,title:$('#title').value,sub:$('#sub').value,extra:$('#extra').value,img:imgData,imgov:$('#imgov').checked,
  vurl:$('#vurl').value.startsWith('(')?'':$('#vurl').value.trim(),dur:+$('#dur').value,sound:$('#vsound').checked,ytcrop:$('#ytcrop').checked,fit:$('#fit').value,
  from:$('#from').value,to:$('#to').value,t1:$('#t1').value,t2:$('#t2').value,target:$('#target').value,days:$$('#days input:checked').map(c=>+c.value),
- wurl:$('#wurl').value.trim(),zoom:+$('#zoom').value||100,bmode:$('#bmode').value,qrurl:$('#qrurl').value.trim(),count:+$('#ncount').value||5}}
+ wurl:$('#wurl').value.trim(),zoom:+$('#zoom').value||100,bmode:$('#bmode').value,qrurl:$('#qrurl').value.trim(),count:+$('#ncount').value||5,zone:$('#zone').value,priority:$('#prio').checked}}
 function cleanData(t,v){ // chỉ giữ các trường loại slide này dùng → dữ liệu gọn, Tivi tải nhẹ
  const keep={welcome:['title','sub','extra','img','imgov'],meeting:['extra','img','imgov'],event:['kind','title','sub','extra','img','imgov'],video:['vurl','sound','ytcrop','img','imgov'],
   image:['img','fit'],text:['title','extra','img','imgov'],countdown:['title','sub','target','img','imgov'],clock:['img','imgov'],calendar:['title','feed','img','imgov'],room:['title','feed'],
   weather:['wcity','wlat','wlon','wname','img','imgov'],kpi:['title','extra','feed','img','imgov'],web:['wurl','zoom'],birthday:['title','sub','extra','feed','bmode','img','imgov'],qr:['title','sub','extra','qrurl','img','imgov'],news:['title','feed','count']}[t]||Object.keys(v);
- const o={};for(const k of [...keep,'dur','from','to','t1','t2','days'])if(v[k]!==undefined&&v[k]!==''&&v[k]!==null)o[k]=v[k];
+ const o={};for(const k of [...keep,'dur','from','to','t1','t2','days','zone','priority'])if(v[k]!==undefined&&v[k]!==''&&v[k]!==null)o[k]=v[k];
+ if(o.zone!=='side')delete o.zone;if(!o.priority)delete o.priority;
  if(o.days&&o.days.length===7)delete o.days;if(o.imgov===true)delete o.imgov;
  return o;
 }
@@ -661,11 +671,14 @@ async function buildData(t,old){ // trả về data đã hoàn chỉnh (kèm fee
  if(t==='image'&&!v.img)throw new Error('Hãy chọn ảnh.');
  if(t!=='video'&&!(v.dur>0))throw new Error('Thời gian hiển thị phải lớn hơn 0 giây.');
  if(t==='video'){if(!v.vurl)throw new Error('Hãy nhập link, chọn từ thư viện hoặc tải file video lên.');if(!yt(v.vurl)&&!safeMedia(v.vurl))throw new Error('Link video phải bắt đầu bằng https://')}
+ if(v.zone==='side'&&t==='video')throw new Error('Vùng phụ không phát video. Hãy chọn Vùng chính cho video.');
+ if(v.priority&&!v.t1&&!v.t2&&!v.from&&!v.to&&v.days.length===7&&!confirm('Nội dung ưu tiên này KHÔNG có khung ngày/giờ → màn hình sẽ chỉ phát mỗi nội dung ưu tiên suốt ngày. Vẫn lưu?'))throw new Error('Đã hủy. Hãy đặt Từ giờ – Đến giờ cho nội dung ưu tiên.');
+ if(t==='web'&&!v.wurl)throw new Error('Bạn chưa nhập Link trang web.\n(Dòng chữ mờ trong ô chỉ là ví dụ.)');
  if(t==='web'&&!safeWeb(v.wurl))throw new Error('Link trang web phải bắt đầu bằng https://');
- if(t==='calendar'||t==='room'){const u=normFeedURL($('#icsurl').value);if(!/^https:\/\/\S+$/i.test(u))throw new Error('Nhập link lịch dạng ICS (https://... hoặc webcal://...).');v.feed=await saveFeed('ics',u,od.feed)}
+ if(t==='calendar'||t==='room'){const u=normFeedURL($('#icsurl').value);if(!u)throw new Error('Bạn chưa nhập Link lịch ICS.\n(Dòng chữ mờ trong ô chỉ là ví dụ – hãy dán link vào ô.)');if(!/^https:\/\/\S+$/i.test(u))throw new Error('Nhập link lịch dạng ICS (https://... hoặc webcal://...).');v.feed=await saveFeed('ics',u,od.feed)}
  if(t==='kpi'){const src=$('#kpisrc').value,u=normFeedURL($('#kpiurl').value);
   if(src==='manual'){if(!v.extra.trim())throw new Error('Nhập dữ liệu KPI (mỗi dòng: Tên | Giá trị | Mục tiêu | Đơn vị).')}
-  else{if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link dữ liệu phải bắt đầu bằng https://');
+  else{if(!u)throw new Error('Bạn chưa nhập Link dữ liệu KPI.\n(Dòng chữ mờ trong ô chỉ là ví dụ.)');if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link dữ liệu phải bắt đầu bằng https://');
    if(src==='sheet'&&!/^https:\/\/docs\.google\.com\/spreadsheets\//i.test(u))throw new Error('Link phải là Google Sheet đã "Xuất bản lên web" dạng CSV.');
    if(src==='custom')checkHost(u);
    v.feed=await saveFeed('csv',u,od.feed);
@@ -674,8 +687,8 @@ async function buildData(t,old){ // trả về data đã hoàn chỉnh (kèm fee
  if(t==='birthday'){const u=normFeedURL($('#bdurl').value);
   if(u){if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link Google Sheet phải bắt đầu bằng https://');checkHost(u);v.feed=await saveFeed('csv',u,od.feed);v.extra=''}
   else if(!v.extra.trim())throw new Error('Dán link Google Sheet danh sách nhân viên hoặc nhập tay (Họ tên | Ngày sinh | Phòng ban).')}
- if(t==='qr'&&!v.qrurl)throw new Error('Nhập nội dung mã QR (link hoặc chữ).');
- if(t==='news'){const u=normFeedURL($('#rssurl').value);if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link RSS phải bắt đầu bằng https://');checkHost(u);v.feed=await saveFeed('rss',u,od.feed)}
+ if(t==='qr'&&!v.qrurl)throw new Error('Bạn chưa nhập nội dung mã QR (link hoặc chữ).\n(Dòng chữ mờ trong ô chỉ là ví dụ.)');
+ if(t==='news'){const u=normFeedURL($('#rssurl').value);if(!u)throw new Error('Bạn chưa nhập Link RSS.\n(Dòng chữ mờ trong ô chỉ là ví dụ – hãy gõ hoặc dán link vào ô.)');if(!/^https:\/\/\S+$/i.test(u))throw new Error('Link RSS phải bắt đầu bằng https://');checkHost(u);v.feed=await saveFeed('rss',u,od.feed)}
  if(t==='weather'){const c=$('#wcity').value.trim();if(!c)throw new Error('Nhập tên thành phố.');v.wcity=c;
   if(od.wcity===c&&od.wlat!=null){v.wlat=od.wlat;v.wlon=od.wlon;v.wname=od.wname}else{const g=await geocode(c).catch(e=>{throw new Error(`Không tìm thấy thành phố "${c}" (${e.message})`)});v.wlat=g.latitude;v.wlon=g.longitude;v.wname=g.name}}
  return cleanData(t,v);
@@ -917,7 +930,7 @@ function renderCal(){
   h+=`<div class="col ${isToday?'today':''}" style="height:${(h1-h0)*HP}px">${[...Array(h1-h0)].map(()=>'<div class="hr"></div>').join('')}
    ${isToday&&nm>=h0*60&&nm<=h1*60?`<div class="nowline" style="top:${(nm-h0*60)/60*HP}px"></div>`:''}
    ${ev.map(e=>{const top=(Math.max(e.a,h0*60)-h0*60)/60*HP,ht=Math.max(16,(Math.min(e.b,h1*60)-Math.max(e.a,h0*60))/60*HP-2);
-    return`<div class="ev ${e.r.status==='pending'?'pend':''}" style="top:${top}px;height:${ht}px;left:calc(${e.l*100/n}% + 2px);width:calc(${100/n}% - 4px);background:${col(e.r)}" title="${name(e.r)} · ${e.r.data.t1||'00:00'}–${e.r.data.t2||'24:00'}" onclick="ed('${e.r.id}')"><b>${e.r.data.t1||'00:00'}–${e.r.data.t2||'24:00'}</b><br>${name(e.r)}</div>`}).join('')}</div>`});
+    return`<div class="ev ${e.r.status==='pending'?'pend':''}" style="${e.r.data.priority?'outline:3px solid #ffd166;z-index:2;':''}top:${top}px;height:${ht}px;left:calc(${e.l*100/n}% + 2px);width:calc(${100/n}% - 4px);background:${col(e.r)}" title="${name(e.r)} · ${e.r.data.t1||'00:00'}–${e.r.data.t2||'24:00'}" onclick="ed('${e.r.id}')"><b>${e.r.data.priority?'⚡ ':''}${e.r.data.t1||'00:00'}–${e.r.data.t2||'24:00'}</b><br>${name(e.r)}</div>`}).join('')}</div>`});
  h+='</div>';
  $('#cal').innerHTML=rows.length?h:'<div class="empty">Chưa có nội dung nào đang bật cho phạm vi này.</div>';
 }

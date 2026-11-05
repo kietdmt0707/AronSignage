@@ -2,7 +2,7 @@
    ARON Signage v2 – Lõi dùng chung cho player.html và admin.html
    (hiển thị slide, lịch ICS, thời tiết, KPI, âm thanh khẩn cấp, bộ nhớ offline)
    ===================================================================== */
-const APP_VERSION='2.1.1';
+const APP_VERSION='2.2.0';
 // Thông tin kết nối lấy từ config.js (mỗi môi trường/project Supabase một file riêng)
 const CFG=window.SIGNAGE_CONFIG||{};
 const SB_URL=String(CFG.url||'').replace(/\/+$/,'');
@@ -30,7 +30,8 @@ let clockOffset=0;
 const NOW=()=>new Date(Date.now()+clockOffset);
 function syncClock(serverIso){const t=Date.parse(serverIso);if(!isNaN(t))clockOffset=t-Date.now()}
 const today=()=>{const d=NOW();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
-var renderTok=0,cdInt=null;
+var renderTok=0,sideTok=0,TOKC=0,cdInt=null;
+const alive=t=>t===renderTok||t===sideTok; // slide (vùng chính hoặc vùng phụ) còn đang hiển thị?
 
 /* ===== ÂM THANH CẢNH BÁO (Web Audio) ===== */
 var actx=null;
@@ -160,12 +161,12 @@ async function loadCalendar(s,tok){
  const box=$('#xbox_'+tok);if(!box)return;
  try{
   if(!s.feed)throw new Error('Chưa cấu hình link lịch');
-  const r=await feedText(s.feed);if(tok!==renderTok)return;
+  const r=await feedText(s.feed);if(!alive(tok))return;
   const now=NOW(),evs=eventsOn(parseICS(r.data),now);
   const rows=evs.map(e=>{const cur=!e.allDay&&e.start<=now&&e.end>now,past=!e.allDay&&e.end<=now;
    return`<div class="mr ${cur?'now':''} ${past?'past':''}"><b>${e.allDay?'Cả ngày':hhmm(e.start)+'–'+hhmm(e.end)}</b><span>${esc(e.summary||'(Không tiêu đề)')}${cur?' <em class="live">● Đang diễn ra</em>':''}</span><i>${esc(e.location||'')}</i></div>`}).join('');
   box.innerHTML=(rows||'<div class="mid" style="text-align:center">Hôm nay không có cuộc họp</div>')+updLine(r);
- }catch(e){if(tok===renderTok)box.innerHTML=`<div class="mid" style="text-align:center">⚠️ Không tải được lịch</div><div class="sm2" style="text-align:center">${esc(netErr(e,'celqybfrjzrxvhlhtrqo.supabase.co'))}</div>`}
+ }catch(e){if(alive(tok))box.innerHTML=`<div class="mid" style="text-align:center">⚠️ Không tải được lịch</div><div class="sm2" style="text-align:center">${esc(netErr(e,'celqybfrjzrxvhlhtrqo.supabase.co'))}</div>`}
 }
 
 /* ================= THỜI TIẾT (Open-Meteo) ================= */
@@ -177,11 +178,11 @@ async function loadWeather(s,tok){
   if(s.wlat==null)throw new Error('Chưa chọn thành phố');
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${+s.wlat}&longitude=${+s.wlon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=5`;
   const r=await cachedFetch('wx:'+s.wlat+','+s.wlon,30,async()=>{const x=await fetchT(url,8000);if(!x.ok)throw new Error('Máy chủ thời tiết trả lỗi '+x.status);return x.json()});
-  if(tok!==renderTok)return;
+  if(!alive(tok))return;
   const c=r.data.current,d=r.data.daily,[ic,tx]=wmo(c.weather_code);
   const days=d.time.map((t,i)=>{const dt=new Date(t+'T00:00');const[di]=wmo(d.weather_code[i]);return`<div class="wx-d"><div class="wx-dn">${i===0?'Hôm nay':dt.toLocaleDateString('vi-VN',{weekday:'short'})}</div><div class="wx-di">${di}</div><div class="wx-dt"><b>${Math.round(d.temperature_2m_max[i])}°</b> ${Math.round(d.temperature_2m_min[i])}°</div><div class="wx-dp">💧${d.precipitation_probability_max[i]??0}%</div></div>`}).join('');
   box.innerHTML=`<div class="wx-now"><div class="wx-ic">${ic}</div><div style="text-align:left"><div class="wx-t">${Math.round(c.temperature_2m)}°C</div><div class="mid">${tx}</div><div class="sm2">Cảm giác ${Math.round(c.apparent_temperature)}° · 💧 ${c.relative_humidity_2m}% · 💨 ${Math.round(c.wind_speed_10m)} km/h</div></div></div><div class="wx-days">${days}</div>${updLine(r)}`;
- }catch(e){if(tok===renderTok)box.innerHTML=`<div class="mid">⚠️ Không tải được thời tiết</div><div class="sm2" style="max-width:70vw;margin:1vw auto 0">${esc(netErr(e,'api.open-meteo.com'))}</div>`;console.warn('Thời tiết:',e)}
+ }catch(e){if(alive(tok))box.innerHTML=`<div class="mid">⚠️ Không tải được thời tiết</div><div class="sm2" style="max-width:70vw;margin:1vw auto 0">${esc(netErr(e,'api.open-meteo.com'))}</div>`;console.warn('Thời tiết:',e)}
 }
 
 /* ================= KPI ================= */
@@ -198,9 +199,9 @@ async function loadKPI(s,tok){
   let rows,r=null;
   if(s.feed){r=await feedText(s.feed);rows=kpiRows(parseFeedRows(r.data))}
   else rows=kpiRows((s.extra||'').split('\n').map(l=>l.split('|')));
-  if(tok!==renderTok)return;
+  if(!alive(tok))return;
   box.innerHTML=(rows.length?kpiHTML(rows):'<div class="mid">Chưa có dữ liệu KPI</div>')+(r?updLine(r):'');
- }catch(e){if(tok===renderTok)box.innerHTML=`<div class="mid">⚠️ Không tải được KPI</div><div class="sm2">${esc(netErr(e,'celqybfrjzrxvhlhtrqo.supabase.co'))}</div>`}
+ }catch(e){if(alive(tok))box.innerHTML=`<div class="mid">⚠️ Không tải được KPI</div><div class="sm2">${esc(netErr(e,'celqybfrjzrxvhlhtrqo.supabase.co'))}</div>`}
 }
 /* ===== Mẫu hiển thị các loại slide có sẵn ===== */
 function htmlBase(s,tok){const im0=safeImg(s.img),im=im0?cachedURL(im0):'',bg=im?`style="background-image:url(${im})"`:'',ov=(im&&s.imgov!==false)?'ov':'';
@@ -215,12 +216,11 @@ function htmlBase(s,tok){const im0=safeImg(s.img),im=im0?cachedURL(im0):'',bg=im
  const y=s.type=='video'&&yt(s.vurl);if(y){const mP=1;return`<div class="sl" style="background:#000;padding:0;overflow:hidden"><iframe id="yt_player" src="https://www.youtube.com/embed/${y}?enablejsapi=1&autoplay=1&mute=${mP}&controls=0&rel=0&playsinline=1&cc_load_policy=0&iv_load_policy=3&disablekb=1&fs=0&modestbranding=1" allow="autoplay; encrypted-media" style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;transform:scale(${s.ytcrop===false?1:1.16})"></iframe></div>`;}
  if(s.type=='text')return`<div class="sl ${ov}" ${bg||'style="background:var(--sA)"'}><div class="emo">📢</div><div class="big">${esc(s.title)}</div><div class="mid" style="white-space:pre-line">${esc(s.extra)}</div></div>`;
  if(s.type=='clock'){const d=NOW();return`<div class="sl ${ov}" ${bg||'style="background:var(--sN)"'}><div class="big" style="font-size:14vw">${d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</div><div class="mid">${d.toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div>`}
- if(s.type=='countdown'){return`<div class="sl ${ov}" ${bg||'style="background:var(--sN)"'}><div class="emo">⏳</div><div class="mid" style="font-size:3.5vw;font-weight:700">${esc(s.title)}</div><div id="cd_live_box" style="width:100%"></div><div class="mid" style="font-size:2.2vw">${esc(s.sub)}</div></div>`}
+ if(s.type=='countdown'){return`<div class="sl ${ov}" ${bg||'style="background:var(--sN)"'}><div class="emo">⏳</div><div class="mid" style="font-size:3.5vw;font-weight:700">${esc(s.title)}</div><div id="cd_live_box_${tok}" style="width:100%"></div><div class="mid" style="font-size:2.2vw">${esc(s.sub)}</div></div>`}
  if(s.type!=='video')return'<div class="sl"><div class="mid">⚠️ Loại nội dung này chưa được hỗ trợ</div><div class="sm2">Hãy tải lại trang để cập nhật ứng dụng</div></div>';
  const mutedAttr='muted';return`<div class="sl ${ov}" ${bg||'style="background:#000"'}><video id="v" autoplay ${mutedAttr} playsinline src="${esc(safeMedia(s.local||cachedURL(s.vurl)))}"></video></div>`}
-function startLiveCountdown(targetStr){
- if(cdInt)clearInterval(cdInt);
- const el=$('#cd_live_box');if(!el)return;
+function startLiveCountdown(targetStr,tok){
+ const el=$('#cd_live_box_'+tok);if(!el)return;
  const target=new Date(targetStr).getTime();
  if(isNaN(target)){el.innerHTML='<div class="big" style="font-size:5vw">Chưa đặt thời gian</div>';return}
  const tick=()=>{
@@ -229,7 +229,7 @@ function startLiveCountdown(targetStr){
   const d=Math.floor(diff/864e5),h=Math.floor((diff/36e5)%24),m=Math.floor((diff/6e4)%60),s=Math.floor((diff/1000)%60),pad=n=>String(n).padStart(2,'0');
   el.innerHTML=`<div class="cd-grid"><div class="cd-box"><span class="cd-num">${d}</span><span class="cd-lbl">NGÀY</span></div><div class="cd-box"><span class="cd-num">${pad(h)}</span><span class="cd-lbl">GIỜ</span></div><div class="cd-box"><span class="cd-num">${pad(m)}</span><span class="cd-lbl">PHÚT</span></div><div class="cd-box"><span class="cd-num">${pad(s)}</span><span class="cd-lbl">GIÂY</span></div></div>`;
  };
- tick();cdInt=setInterval(tick,1000);
+ tick();const iv=setInterval(()=>{if(!alive(tok)||!el.isConnected)return clearInterval(iv);tick()},1000);
 }
 
 
@@ -238,7 +238,7 @@ async function loadRoom(s,tok){
  const box=$('#xbox_'+tok);if(!box)return;
  try{
   if(!s.feed)throw new Error('Chưa cấu hình link lịch phòng');
-  const r=await feedText(s.feed);if(tok!==renderTok)return;
+  const r=await feedText(s.feed);if(!alive(tok))return;
   const now=NOW(),evs=eventsOn(parseICS(r.data),now).filter(e=>!e.allDay);
   const curE=evs.find(e=>e.start<=now&&e.end>now),rest=evs.filter(e=>e.start>now),nx=rest[0];
   const mins=d=>Math.max(1,Math.round((d-now)/6e4));
@@ -249,7 +249,7 @@ async function loadRoom(s,tok){
      :(nx?`<div class="room-time">Trống đến ${hhmm(nx.start)} (${mins(nx.start)} phút nữa)</div>`:`<div class="room-time">Không còn cuộc họp nào hôm nay</div>`)}
    ${rest.length?`<div class="room-next"><b>Tiếp theo</b>${rest.slice(0,3).map(e=>`<div><span>${hhmm(e.start)}–${hhmm(e.end)}</span>${esc(e.summary||'(Không tiêu đề)')}</div>`).join('')}</div>`:''}
    ${updLine(r)}`;
- }catch(e){if(tok===renderTok)box.innerHTML=`<div class="room-name">${esc(s.title||'Phòng họp')}</div><div class="mid">⚠️ Không tải được lịch phòng</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
+ }catch(e){if(alive(tok))box.innerHTML=`<div class="room-name">${esc(s.title||'Phòng họp')}</div><div class="mid">⚠️ Không tải được lịch phòng</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
 }
 
 /* ================= Dữ liệu dạng bảng: CSV hoặc JSON (Oracle ORDS / BI Publisher / API) ================= */
@@ -261,7 +261,9 @@ function parseFeedRows(t){
 }
 // Bỏ qua slide không có dữ liệu (VD: hôm nay không ai sinh nhật) nếu còn slide khác
 function skipEmpty(tok){
- if(tok!==renderTok||PL.preview)return false;const n=activeSlides(PL.slides).length;
+ if(PL.preview&&PL.preview.length===1)return false;
+ if(tok===sideTok){const n=sideList().length;SZ.skipN=(SZ.skipN||0)+1;if(n<2||SZ.skipN>=n)return false;setTimeout(()=>{if(tok===sideTok)sideShow()},200);return true}
+ if(tok!==renderTok||PL.preview)return false;const n=mainList().length;
  PL.skipN=(PL.skipN||0)+1;if(n<2||PL.skipN>=n)return false;
  if(PLOG.cur)PLOG.cur.skip=true;
  setTimeout(()=>{if(tok===renderTok)plShow()},200);return true;
@@ -288,7 +290,7 @@ async function loadBirthday(s,tok){
  try{
   let rows,r=null;
   if(s.feed){r=await feedText(s.feed);rows=parseFeedRows(r.data)}else rows=(s.extra||'').split('\n').map(l=>l.split('|'));
-  if(tok!==renderTok)return;
+  if(!alive(tok))return;
   const mode=s.bmode||'day',L=birthdayList(rows,mode),now=NOW();
   const head=mode==='month'?`Sinh nhật tháng ${now.getMonth()+1}`:mode==='week'?'Sinh nhật 7 ngày tới':'Chúc mừng sinh nhật';
   if(!L.length){if(skipEmpty(tok))return;box.innerHTML=`<div class="bd-h">🎂 ${esc(s.title||head)}</div><div class="mid" style="margin-top:2vw">${mode==='day'?'Hôm nay không có sinh nhật':'Không có sinh nhật trong thời gian này'}</div>`+(r?updLine(r):'');return}
@@ -296,7 +298,7 @@ async function loadBirthday(s,tok){
   box.innerHTML=`<div class="bd-h">🎂 ${esc(s.title||head)}</div>${s.sub?`<div class="mid" style="margin-top:.5vw">${esc(s.sub)}</div>`:''}
    <div class="bd-grid ${big?'big':''}">${L.slice(0,12).map(p=>`<div class="bd ${p.today?'today':''}">${p.img?`<div class="bd-av" style="background-image:url(${cachedURL(p.img)})"></div>`:`<div class="bd-av">${ini(p.name)}</div>`}<div class="bd-n">${esc(p.name)}</div>${p.dept?`<div class="bd-d">${esc(p.dept)}</div>`:''}<div class="bd-t">${p.today?'🎉 Hôm nay':String(p.d).padStart(2,'0')+'/'+String(p.m).padStart(2,'0')}</div></div>`).join('')}</div>
    ${L.length>12?`<div class="sm2">và ${L.length-12} người khác</div>`:''}`;
- }catch(e){if(tok===renderTok)box.innerHTML=`<div class="bd-h">🎂 Sinh nhật</div><div class="mid">⚠️ Không tải được danh sách</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
+ }catch(e){if(alive(tok))box.innerHTML=`<div class="bd-h">🎂 Sinh nhật</div><div class="mid">⚠️ Không tải được danh sách</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
 }
 
 /* ================= TIN TỨC (RSS) ================= */
@@ -304,7 +306,7 @@ async function loadNews(s,tok){
  const box=$('#xbox_'+tok);if(!box)return;
  try{
   if(!s.feed)throw new Error('Chưa cấu hình link RSS');
-  const r=await feedText(s.feed);if(tok!==renderTok)return;
+  const r=await feedText(s.feed);if(!alive(tok))return;
   let items=[];try{items=JSON.parse(r.data)}catch(e){throw new Error('Dữ liệu RSS không hợp lệ')}
   const n=Math.max(3,Math.min(8,+s.count||5));items=(items||[]).slice(0,n);
   if(!items.length){if(skipEmpty(tok))return;box.innerHTML='<div class="mid">Chưa có tin mới</div>';return}
@@ -313,7 +315,7 @@ async function loadNews(s,tok){
   box.innerHTML=`<div class="nw-h">📰 ${esc(s.title||'Tin tức')}</div><div class="nw">
    <div class="nw-top">${top.img?`<div class="nw-img" style="background-image:url('${esc(top.img)}')"></div>`:''}<div class="nw-tt">${esc(top.t)}</div><div class="nw-d">${esc(t(top.d))}</div></div>
    <div class="nw-list">${rest.map(i=>`<div class="nw-i"><b>${esc(i.t)}</b><span>${esc(t(i.d))}</span></div>`).join('')}</div></div>${updLine(r)}`;
- }catch(e){if(tok===renderTok)box.innerHTML=`<div class="mid">⚠️ Không tải được tin tức</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
+ }catch(e){if(alive(tok))box.innerHTML=`<div class="mid">⚠️ Không tải được tin tức</div><div class="sm2">${esc(netErr(e,SB_URL.replace('https://','')))}</div>`}
 }
 
 /* ================= MÃ QR ================= */
@@ -348,10 +350,18 @@ function playerMarkup(){return`<div id="player" hidden><img id="player-logo" hid
 function activeSlides(list){const n=NOW(),hm=n.toTimeString().slice(0,5),d=today(),off=!navigator.onLine;
  return (list||[]).filter(s=>(!s.from||s.from<=d)&&(!s.to||s.to>=d)&&(!s.days||!Array.isArray(s.days)||s.days.includes(n.getDay()))&&(!s.t1||s.t1<=hm)&&(!s.t2||s.t2>=hm)
   &&!(off&&((s.type==='video'&&yt(s.vurl))||s.type==='web')))}
+// Bố cục: full | side (cột phải: đồng hồ + lịch họp) | side_play (70/30, cột phải phát Vùng phụ) | split (chia đôi)
+const hasZone=l=>l==='side_play'||l==='split';
+function layoutOf(){return PL.preview&&PL.preview.length===1?'full':(PL.settings.lay||'full')}
+// Ưu tiên chen ngang: đang có nội dung ưu tiên trong khung giờ → chỉ phát các nội dung ưu tiên
+const prio=L=>{const P=L.filter(s=>s.priority);return P.length?P:L};
+function mainList(){let L=PL.preview?PL.preview:activeSlides(PL.slides);if(hasZone(layoutOf()))L=L.filter(s=>s.zone!=='side');return prio(L)}
+function sideList(){const L=PL.preview?PL.preview:activeSlides(PL.slides);return prio(L.filter(s=>s.zone==='side'&&s.type!=='video'))}
+const keyOf=L=>L.map(s=>s.id).join(',');
 const alertActive=()=>{const a=PL.alert;return !!(a&&(!a.until||Date.parse(a.until)>NOW().getTime()))};
 
-function setStage(h){
- const st=$('#stage'),olds=[...st.children];
+function setStage(h,el){
+ const st=el||$('#stage'),olds=[...st.children];
  olds.forEach(o=>{o.querySelectorAll('video,iframe').forEach(m=>{try{m.pause&&m.pause()}catch(_){}m.remove()});o.querySelectorAll('[id]').forEach(x=>x.removeAttribute('id'));o.classList.add('out')});
  const d=document.createElement('div');d.className='layer';d.innerHTML=h;st.appendChild(d);
  setTimeout(()=>olds.forEach(o=>o.remove()),900);
@@ -367,23 +377,17 @@ function applyChrome(){
 function plShow(){
  clearTimeout(PL.tm);if(cdInt){clearInterval(cdInt);cdInt=null}
  if(!PL.running)return;
- const tok=++renderTok;applyChrome();
+ const tok=renderTok=++TOKC;applyChrome();
  if(!PL.preview&&alertActive()){setStage('');renderEmergency();PL.tm=setTimeout(plShow,5000);report({type:'alert',title:'🚨 '+(PL.alert.title||'Khẩn cấp')});return}
  $('#emg').hidden=true;stopEmergencySound();updateSoundHint();
- let L=PL.preview?PL.preview:activeSlides(PL.slides);PL.dirty=false;
- const sp=PL.settings.lay==='side';$('#player').classList.toggle('sp',sp);
- if(sp){renderSide(PL.preview||PL.slides);if(!(PL.preview&&PL.preview.length===1)){const nm=L.filter(s=>s.type!=='meeting');if(nm.length)L=nm}}
+ let L=mainList();PL.dirty=false;PL.prioKey=keyOf(L.filter(s=>s.priority));
+ const lay=layoutOf();applyLayout(lay);
+ if(lay==='side'){renderSide(PL.preview||PL.slides);const nm=L.filter(s=>s.type!=='meeting');if(nm.length)L=nm}
  const pg=$('#pg');pg.style.transition='none';pg.style.width='0';
  if(!L.length){setStage('<div class="sl" style="background:var(--sN)"><div class="mid">Chưa có nội dung hiển thị</div><div class="sm2" style="opacity:.75;margin-top:1vw">Kiểm tra: nội dung đã được duyệt, đã chọn màn hình này, và khung ngày/giờ hiển thị</div></div>');PL.tm=setTimeout(plShow,15000);report(null);return}
  const s=L[PL.cur%L.length];PL.cur++;
  setStage(html(s,tok));report(s);
- if(s.type==='countdown')startLiveCountdown(s.target);
- if(s.type==='calendar')loadCalendar(s,tok);
- if(s.type==='weather')loadWeather(s,tok);
- if(s.type==='kpi')loadKPI(s,tok);
- if(s.type==='birthday')loadBirthday(s,tok);
- if(s.type==='news')loadNews(s,tok);
- if(s.type==='room'){loadRoom(s,tok);const iv=setInterval(()=>{if(tok!==renderTok)return clearInterval(iv);loadRoom(s,tok)},60000)}
+ runLoaders(s,tok);
  if(s.type==='video'){
   const v=$('#v');if(v){v.onended=v.onerror=()=>{if(tok===renderTok){PL.skipN=0;plShow()}}}
   const sec=(s.dur&&s.dur>0)?s.dur:(v?600:300);PL.tm=setTimeout(()=>{PL.skipN=0;plShow()},sec*1000);
@@ -400,7 +404,7 @@ function plShow(){
  }else{
   const secs=Math.max(1,+s.dur||10);
   if(L.length>1||PL.preview)setTimeout(()=>{if(tok!==renderTok)return;pg.style.transition=`width ${secs}s linear`;pg.style.width='100%'},50);
-  const again=()=>{PL.skipN=0;if(L.length===1&&!PL.dirty&&!PL.preview&&!['clock','countdown','calendar','weather','kpi','room','birthday','news'].includes(s.type)&&activeSlides(PL.slides).length===1){PL.tm=setTimeout(again,secs*1000);return}plShow()};
+  const again=()=>{PL.skipN=0;if(L.length===1&&!PL.dirty&&!PL.preview&&!['clock','countdown','calendar','weather','kpi','room','birthday','news'].includes(s.type)&&mainList().length===1){PL.tm=setTimeout(again,secs*1000);return}plShow()};
   PL.tm=setTimeout(again,secs*1000);
  }
 }
@@ -417,6 +421,39 @@ function report(s){
  try{PL.onNow&&PL.onNow(s)}catch(_){}
 }
 
+function runLoaders(s,tok){
+ if(s.type==='countdown')startLiveCountdown(s.target,tok);
+ if(s.type==='calendar')loadCalendar(s,tok);
+ if(s.type==='weather')loadWeather(s,tok);
+ if(s.type==='kpi')loadKPI(s,tok);
+ if(s.type==='birthday')loadBirthday(s,tok);
+ if(s.type==='news')loadNews(s,tok);
+ if(s.type==='room'){loadRoom(s,tok);const iv=setInterval(()=>{if(!alive(tok))return clearInterval(iv);loadRoom(s,tok)},60000)}
+}
+let curLay=null;
+function applyLayout(lay){
+ const p=$('#player');p.classList.toggle('sp',lay==='side');p.classList.toggle('lay-side',lay==='side_play');p.classList.toggle('lay-split',lay==='split');
+ if(hasZone(lay)){if(!$('#zside'))$('#side').innerHTML='<div id="zside" class="zstage"></div>';if(!SZ.on){SZ.on=true;SZ.cur=0;sideShow()}}
+ else{stopSide();if(lay!=='side')$('#side').innerHTML=''}
+ curLay=lay;
+}
+// Vùng phụ: vòng phát riêng, độc lập với vùng chính
+const SZ={on:false,tm:null,cur:0,skipN:0,key:'',lastId:null};
+function stopSide(){SZ.on=false;clearTimeout(SZ.tm);sideTok=++TOKC;SZ.lastId=null}
+const STATIC_T=['clock','countdown','calendar','weather','kpi','room','birthday','news'];
+function sideShow(){
+ clearTimeout(SZ.tm);if(!SZ.on||!PL.running)return;const z=$('#zside');if(!z)return;
+ const L=sideList();SZ.key=keyOf(L);
+ if(!L.length){const tok=sideTok=++TOKC;SZ.lastId='info';setStage(`<div class="side-info">${sideInfoHTML(PL.preview||PL.slides)}</div>`,z);tick();SZ.tm=setTimeout(sideShow,30000);return}
+ const s=L[SZ.cur%L.length];SZ.cur++;
+ const secs=Math.max(3,+s.dur||10);
+ if(!(L.length===1&&SZ.lastId===s.id&&!STATIC_T.includes(s.type))){const tok=sideTok=++TOKC;SZ.lastId=s.id;setStage(html(s,tok),z);runLoaders(s,tok)}
+ SZ.tm=setTimeout(()=>{SZ.skipN=0;sideShow()},secs*1000);
+}
+function sideInfoHTML(list){
+ const ms=activeSlides(list).filter(s=>s.type==='meeting').flatMap(s=>(s.extra||'').split('\n').filter(x=>x.trim())).sort(),sn=PL.settings.sidenote;
+ return'<div class="c" id="sc"></div><div class="d" id="sd"></div>'+(ms.length?'<h4>📅 Lịch họp hôm nay</h4>'+ms.map(l=>{const p=l.split('|').map(x=>x.trim());return`<div class="m"><b>${esc(p[0])}</b>${esc(p[1])}<i>${esc(p[2])}</i></div>`}).join(''):'')+(sn?`<div class="n">${esc(sn)}</div>`:'');
+}
 function renderSide(list){
  const ms=activeSlides(list).filter(s=>s.type==='meeting').flatMap(s=>(s.extra||'').split('\n').filter(x=>x.trim())).sort(),sn=PL.settings.sidenote;
  $('#side').innerHTML='<div class="c" id="sc"></div><div class="d" id="sd"></div>'+(ms.length?'<h4>📅 Lịch họp hôm nay</h4>'+ms.map(l=>{const p=l.split('|').map(x=>x.trim());return`<div class="m"><b>${esc(p[0])}</b>${esc(p[1])}<i>${esc(p[2])}</i></div>`}).join(''):'')+(sn?`<div class="n">${esc(sn)}</div>`:'');tick();
@@ -433,7 +470,7 @@ function plStart(opt){
 }
 function plStop(){
  if(!PL.preview)logClose();PLOG.last=null;
- PL.running=false;PL.preview=null;renderTok++;stopEmergencySound();clearTimeout(PL.tm);if(cdInt){clearInterval(cdInt);cdInt=null}
+ PL.running=false;PL.preview=null;renderTok=++TOKC;stopSide();curLay=null;stopEmergencySound();clearTimeout(PL.tm);if(cdInt){clearInterval(cdInt);cdInt=null}
  $('#player').hidden=true;$('#stage').innerHTML='';$('#emg').hidden=true;
  if(document.fullscreenElement)try{document.exitFullscreen()}catch(_){}
 }
@@ -446,10 +483,14 @@ function plSetData(d){
  applyChrome();
  const isAlert=alertActive();
  if(isAlert!==wasAlert||(isAlert&&PL.alert.id!==oldAlertId))plShow();
- else if(PL.settings.lay==='side'&&!PL.preview)renderSide(PL.slides);
- $('#player').classList.toggle('sp',PL.settings.lay==='side');
+ else if(layoutOf()!==curLay||keyOf(mainList().filter(s=>s.priority))!==PL.prioKey)plShow();
+ else if(layoutOf()==='side'&&!PL.preview)renderSide(PL.slides);
+ if(SZ.on&&keyOf(sideList())!==SZ.key)sideShow();
 }
-setInterval(()=>{if(PL.running&&!PL.preview){const a=alertActive(),shown=!$('#emg').hidden;if(a!==shown)plShow()}},5000);
+setInterval(()=>{if(PL.running&&!PL.preview){const a=alertActive(),shown=!$('#emg').hidden;if(a!==shown)return plShow();
+ // Nội dung ưu tiên vừa đến/hết khung giờ → chuyển ngay, không chờ hết slide hiện tại
+ if(!a&&keyOf(mainList().filter(s=>s.priority))!==PL.prioKey)return plShow();
+ if(SZ.on&&keyOf(sideList())!==SZ.key)sideShow()}},5000);
 function plIdentify(title,sub){
  const el=$('#ident');el.innerHTML=`<div class="id-t">${esc(title)}</div><div class="id-s">${esc(sub||'')}</div>`;el.hidden=false;
  clearTimeout(el._t);el._t=setTimeout(()=>el.hidden=true,15000);

@@ -180,3 +180,24 @@ dialog::backdrop{background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)}
  .room-st{font-size:10vw}.room-name{font-size:6vw}.room-cur{font-size:5.4vw}.room-time{font-size:3.8vw}.room-next{font-size:3.2vw;max-width:90vw}.room-next span{min-width:26vw}
  .cd-num{font-size:10vw}.cd-lbl{font-size:2.2vw}.kpi-grid{grid-template-columns:1fr 1fr}.kpi-v{font-size:8vw}.kpi-n{font-size:3.2vw}
 }
+
+/* ===================== v2.2: Bố cục nhiều vùng ===================== */
+#player.lay-side #side,#player.lay-split #side{display:flex;padding:0;gap:0;border-left:.25vw solid #0a0930;background:#0e0d3a}
+#player.lay-side #side{width:30%}
+#player.lay-split #side{width:50%}
+.zstage{position:relative;flex:1;overflow:hidden}
+.zstage .layer{position:absolute;inset:0}
+.zstage .layer.out{animation:fadeout .8s forwards;pointer-events:none}
+#player.lay-side #stage .sl{zoom:.7}
+#player.lay-side #zside .sl{zoom:.32;padding:3vw}
+#player.lay-split #stage .sl,#player.lay-split #zside .sl{zoom:.5}
+.side-info{position:absolute;inset:0;display:flex;flex-direction:column;gap:1.2vw;padding:2vw;background:linear-gradient(180deg,#15144d,#0e0d3a);overflow:hidden}
+#player.lay-split .side-info{align-items:center;justify-content:center;text-align:center}
+#player.lay-split .side-info .c{font-size:12vw}#player.lay-split .side-info .d{font-size:3vw}
+@media (orientation:portrait){
+ #player.lay-side #body,#player.lay-split #body{flex-direction:column}
+ #player.lay-side #side,#player.lay-split #side{width:auto;border-left:0;border-top:.4vw solid #0a0930}
+ #player.lay-side #side{height:30%}#player.lay-split #side{height:50%}
+ #player.lay-side #stage .sl{zoom:1}#player.lay-side #zside .sl{zoom:.5}
+ #player.lay-split #stage .sl,#player.lay-split #zside .sl{zoom:.65}
+}
