@@ -221,3 +221,11 @@ input,select,textarea{background:#f5f8f8;border-color:#e3ebed;border-radius:10px
 .lb.light{background:linear-gradient(115deg,#053f50,#0a566d 55%,#074659)}
 .login-card{border-top-color:#f57107}
 #bar{border-top-color:#f57107}
+
+/* ===================== v2.4: Mã QR góc màn hình ===================== */
+.cqr{position:absolute;right:1.2vw;bottom:calc(5.5vh + 1vw);z-index:12;background:#fff;border-radius:1.2vh;padding:1vh 1vh .7vh;box-shadow:0 .8vh 2.4vh rgba(0,0,0,.35);text-align:center;color:#0b2530;border-top:.5vh solid #f57107}
+.cqr[hidden]{display:none}.cqr.left{right:auto;left:1.2vw}
+.cqr.s{--q:11vh}.cqr.m{--q:15vh}.cqr.l{--q:21vh}
+.cqr .cqr-box{width:var(--q);height:var(--q)}.cqr svg{width:100%;height:100%;display:block}
+.cqr-t{font-size:1.55vh;font-weight:800;margin-top:.5vh;color:#074659;max-width:var(--q);line-height:1.2}
+.cqr-s{font-size:1.35vh;color:#6b8088;max-width:var(--q);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

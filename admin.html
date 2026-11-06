@@ -242,6 +242,24 @@
     <div class="row"><input id="master_pin_in" type="password" placeholder="Mã PIN mới (tối thiểu 6 ký tự)" style="flex:1" autocomplete="new-password"><button type="button" onclick="changePin()">Lưu PIN</button></div>
     <p class="hint">Mỗi Tivi chỉ được nhập sai 5 lần / 10 phút (tính riêng từng Tivi). Để khóa chắc chắn, chạy trình duyệt Tivi ở chế độ kiosk (xem README.md).</p>
    </div>
+   <div class="card" id="qr_card"><h2>📶 Mã QR Wifi góc màn hình</h2>
+    <p class="hint" style="margin-top:0">Hiện cố định ở góc dưới mọi màn hình, chồng lên các slide. Khách quét bằng camera điện thoại là vào wifi, không cần gõ mật khẩu.</p>
+    <label style="display:flex;align-items:center;gap:8px;margin:6px 0 4px;cursor:pointer;font-weight:700;color:var(--fg)"><input type="checkbox" id="cq_on" style="width:auto" onchange="cqPreview()"> Hiện mã QR ở góc màn hình</label>
+    <div class="radio"><label><input type="radio" name="cq_mode" value="wifi" checked onchange="cqForm()"> 📶 Wifi</label><label><input type="radio" name="cq_mode" value="link" onchange="cqForm()"> 🔗 Link / chữ bất kỳ</label></div>
+    <div id="cq_wifi">
+     <div class="grid" style="gap:10px"><div><label>Tên wifi (SSID)</label><input id="cq_ssid" placeholder="VD: ARON-Guest" oninput="cqPreview()" autocomplete="off"></div><div><label>Mật khẩu wifi</label><input id="cq_pass" placeholder="VD: 12345678" oninput="cqPreview()" autocomplete="off"></div></div>
+     <div class="grid" style="gap:10px"><div><label>Bảo mật</label><select id="cq_sec" onchange="cqPreview()"><option value="WPA">WPA / WPA2 / WPA3 (phổ biến nhất)</option><option value="WEP">WEP (cũ)</option><option value="nopass">Không có mật khẩu</option></select></div>
+      <div><label>&nbsp;</label><label style="display:flex;gap:6px;align-items:center;margin:8px 0 0;color:var(--fg);cursor:pointer"><input type="checkbox" id="cq_hidden" style="width:auto" onchange="cqPreview()"> Wifi ẩn (không phát tên)</label></div></div>
+     <label style="display:flex;gap:6px;align-items:center;margin-top:8px;color:var(--fg);cursor:pointer"><input type="checkbox" id="cq_showssid" style="width:auto" checked onchange="cqPreview()"> Hiện tên wifi dưới mã</label>
+    </div>
+    <div id="cq_link" hidden><label>Nội dung mã QR</label><input id="cq_text" placeholder="VD: https://aron.com.vn" oninput="cqPreview()"></div>
+    <div class="grid" style="gap:10px"><div><label>Dòng chữ dưới mã</label><input id="cq_label" placeholder="VD: 📶 Quét để vào Wifi" oninput="cqPreview()"></div>
+     <div><label>Kích thước</label><select id="cq_size"><option value="s">Nhỏ</option><option value="m" selected>Vừa (khuyên dùng)</option><option value="l">Lớn – quét được từ xa</option></select></div></div>
+    <label>Vị trí</label><select id="cq_pos"><option value="r">↘ Góc phải dưới (cạnh đồng hồ)</option><option value="l">↙ Góc trái dưới</option></select>
+    <div class="row" style="align-items:flex-start;margin-top:12px;flex-wrap:nowrap"><div id="cq_prev" style="flex:0 0 132px;height:132px;background:#fff;border:1px solid var(--bd);border-radius:12px;padding:6px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:12px;text-align:center"></div>
+     <div class="hint" style="flex:1">👈 Dùng camera điện thoại quét thử mã này trước khi lưu. Muốn ẩn mã trên một màn hình cụ thể (VD: Tivi phòng giám đốc): tab Màn hình → ✏️ Sửa → tích "Ẩn mã QR góc màn hình".<br><span id="cq_warn" style="color:#be4030"></span></div></div>
+    <div class="row" style="margin-top:12px"><button class="p" onclick="saveQR()">💾 Lưu mã QR</button><button onclick="previewQR()">👁 Xem trên Tivi mẫu</button></div>
+   </div>
    <div class="card" id="host_card" style="grid-column:1/-1"><h2>🌐 Nguồn dữ liệu được phép</h2>
     <p class="hint" style="margin-top:0">Hệ thống chỉ đọc dữ liệu (RSS tin tức, KPI từ Oracle BI Publisher / ORDS / API) từ các tên miền trong danh sách này, để không ai lợi dụng được. Google Calendar, Google Sheet, Outlook luôn được phép. Ví dụ Oracle Fusion: <code>xxxx.fa.ocs.oraclecloud.com</code>; Oracle EBS cần có địa chỉ https công khai (ISG/ORDS/API Gateway).</p>
     <div id="host_list"></div>
@@ -290,6 +308,7 @@
  <h3 style="margin:14px 0 0">Ghi đè riêng cho màn này <span class="hint">(để trống = dùng cài đặt chung)</span></h3>
  <label>Dòng chữ chạy</label><input id="sd_ticker">
  <div class="grid" style="gap:10px"><div><label>Bố cục</label><select id="sd_lay"><option value="">— Theo cài đặt chung —</option><option value="full">▭ Toàn màn hình (1 vùng)</option><option value="side">◨ Chính 70% + cột phải: đồng hồ, lịch họp, ghi chú</option><option value="side_play">◨ Chính 70% + cột phải phát nội dung "Vùng phụ"</option><option value="split">◫ Chia đôi 50/50: trái Vùng chính – phải Vùng phụ</option></select></div><div><label>Ghi chú cột phải</label><input id="sd_side"></div></div>
+ <label style="display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--fg);cursor:pointer"><input type="checkbox" id="sd_hideqr" style="width:auto"> Ẩn mã QR góc màn hình trên màn này</label>
  <div class="hint" id="sd_info" style="margin-top:10px"></div>
  <div class="row" style="margin-top:14px"><button class="p" onclick="saveScreen()">Lưu</button><span style="flex:1"></span><button style="color:#d92d20" onclick="deleteScreen()">🗑 Gỡ màn hình</button></div>
 </dialog>
@@ -436,7 +455,9 @@ async function loadAll(){
  renderAll();
 }
 async function loadScreens(silent){
- try{DB.screens=await q(sb.from('screens').select('id,name,location,group_id,status,ticker,lay,sidenote,last_seen,info,created_at,paired_at,paired_by').neq('status','pending').order('name'))||[]}
+ const cols='id,name,location,group_id,status,ticker,lay,sidenote,last_seen,info,created_at,paired_at,paired_by';
+ try{try{DB.screens=await q(sb.from('screens').select(cols+',hide_qr').neq('status','pending').order('name'))||[];DB.v24=true}
+  catch(e){if(!/hide_qr/.test(e.message||''))throw e;DB.v24=false;DB.screens=await q(sb.from('screens').select(cols).neq('status','pending').order('name'))||[]}}
  catch(e){if(!silent)fail(e,'Không tải được danh sách màn hình');return}
  checkOffline();
  if(!silent){renderScreens();renderStats();refreshPick()}
@@ -501,7 +522,7 @@ async function sendCmd(id,cmd){
 function previewScreen(id){
  const s=DB.screens.find(x=>x.id===id);if(!s)return;
  const st=DB.settings;
- startPreview(activeSlides(playableFor(s)),{company:st.company,logo:st.logo,ticker:s.ticker||st.ticker,lay:s.lay||st.lay,sidenote:s.sidenote||st.sidenote});
+ startPreview(activeSlides(playableFor(s)),{company:st.company,logo:st.logo,ticker:s.ticker||st.ticker,lay:s.lay||st.lay,sidenote:s.sidenote||st.sidenote,corner_qr:s.hide_qr?null:st.corner_qr});
 }
 function groupOptions(sel,withNone){return(withNone?`<option value="">— Không thuộc nhóm —</option>`:'')+DB.groups.map(g=>`<option value="${g.id}" ${g.id===sel?'selected':''}>${esc(g.name)}</option>`).join('')+`<option value="__new">➕ Tạo nhóm mới…</option>`}
 async function groupSelectNew(selEl){
@@ -513,14 +534,14 @@ async function groupSelectNew(selEl){
 function editScreen(id){
  const s=DB.screens.find(x=>x.id===id);if(!s)return;
  $('#sd_id').value=id;$('#sd_name').value=s.name;$('#sd_loc').value=s.location||'';$('#sd_group').innerHTML=groupOptions(s.group_id,true);$('#sd_group').onchange=e=>groupSelectNew(e.target);
- $('#sd_status').value=s.status;$('#sd_ticker').value=s.ticker||'';$('#sd_lay').value=s.lay||'';$('#sd_side').value=s.sidenote||'';
+ $('#sd_status').value=s.status;$('#sd_ticker').value=s.ticker||'';$('#sd_hideqr').checked=!!s.hide_qr;$('#sd_hideqr').disabled=DB.v24===false;$('#sd_lay').value=s.lay||'';$('#sd_side').value=s.sidenote||'';
  const i=s.info||{};$('#sd_info').innerHTML=`Ghép nối: ${s.paired_at?new Date(s.paired_at).toLocaleString('vi-VN'):'—'}${s.paired_by?' bởi '+esc(s.paired_by):''}<br>Thiết bị: ${esc(i.res||'—')} · Cửa sổ ${esc(i.vp||'—')} · Ảnh/video đã lưu offline: ${i.cache??'—'} · Chạy liên tục ${i.up!=null?i.up+' phút':'—'}<br><span style="font-size:11px">${esc(i.ua||'')}</span>`;
  $('#scr_dlg').showModal();
 }
 async function saveScreen(){
  const id=$('#sd_id').value,g=$('#sd_group').value;
  const row={name:$('#sd_name').value.trim()||'Tivi',location:$('#sd_loc').value.trim(),group_id:g&&g!=='__new'?g:null,status:$('#sd_status').value,
-  ticker:$('#sd_ticker').value.trim()||null,lay:$('#sd_lay').value||null,sidenote:$('#sd_side').value.trim()||null};
+  ticker:$('#sd_ticker').value.trim()||null,...(DB.v24===false?{}:{hide_qr:$('#sd_hideqr').checked}),lay:$('#sd_lay').value||null,sidenote:$('#sd_side').value.trim()||null};
  try{const r=await q(sb.from('screens').update(row).eq('id',id).select('id'));if(!r.length)throw new Error('Không có quyền');$('#scr_dlg').close();bump();await loadScreens();renderGroupChips()}
  catch(e){fail(e,'Không lưu được')}
 }
@@ -729,7 +750,7 @@ async function save(){
 
 /* ================= XEM TRƯỚC ================= */
 function startPreview(list,settings,alert){PL.settings=settings||{};PL.alert=alert||null;plStart({preview:list.length?list:[{type:'text',title:'Chưa có nội dung',extra:'Màn hình này hiện không có nội dung nào để phát'}]})}
-const baseSettings=()=>({company:DB.settings.company,logo:DB.settings.logo,ticker:DB.settings.ticker,lay:DB.settings.lay,sidenote:DB.settings.sidenote});
+const baseSettings=()=>({company:DB.settings.company,logo:DB.settings.logo,ticker:DB.settings.ticker,lay:DB.settings.lay,sidenote:DB.settings.sidenote,corner_qr:DB.settings.corner_qr});
 function previewRow(id){const r=DB.slides.find(x=>x.id===id);if(r)startPreview([rowToSlide(r)],baseSettings())}
 async function previewForm(){
  const t=$('#type').value,old=edit?DB.slides.find(x=>x.id===edit):null;
@@ -783,7 +804,7 @@ async function stopAlert(id){
 function testAlert(){unlockAudio();const c=audioCtx();const go=()=>playAlert($('#em_lv').value,$('#em_vol').value);if(c&&c.state!=='running')c.resume().then(go);else go()}
 
 /* ================= CÀI ĐẶT ================= */
-function renderSettings(){const s=DB.settings;$('#co_in').value=s.company||'';$('#tk_in').value=s.ticker||'';$('#lay').value=s.lay||'full';$('#sidenote').value=s.sidenote||'';$('#pin_lock').checked=!!s.pin_lock;updateLogoUI()}
+function renderSettings(){const s=DB.settings;fillQR();$('#co_in').value=s.company||'';$('#tk_in').value=s.ticker||'';$('#lay').value=s.lay||'full';$('#sidenote').value=s.sidenote||'';$('#pin_lock').checked=!!s.pin_lock;updateLogoUI()}
 async function saveSettings(){
  try{const r=await q(sb.from('sig_settings').update({company:$('#co_in').value.trim(),ticker:$('#tk_in').value.trim(),lay:$('#lay').value,sidenote:$('#sidenote').value.trim(),updated_at:new Date().toISOString()}).eq('id',1).select().single());DB.settings=r;bump();alert('Đã lưu cài đặt ✔')}
  catch(e){fail(e,'Không lưu được')}
@@ -1014,6 +1035,28 @@ async function restoreSlide(id){
  try{const sid=await q(sb.rpc('restore_slide',{p_audit_id:id}));bump();DB.slides=await q(sb.from('slides').select('*').order('sort'))||[];renderSlides();renderScreens();loadAudit();alert('Đã khôi phục ✔');if(sid)ed(sid)}
  catch(e){fail(e,'Không khôi phục được')}
 }
+
+
+/* ================= MÃ QR GÓC MÀN HÌNH ================= */
+function cqVal(){return{on:$('#cq_on').checked,mode:document.querySelector('input[name=cq_mode]:checked').value,ssid:$('#cq_ssid').value.trim(),pass:$('#cq_pass').value,sec:$('#cq_sec').value,hidden:$('#cq_hidden').checked,show_ssid:$('#cq_showssid').checked,text:$('#cq_text').value.trim(),label:$('#cq_label').value.trim(),size:$('#cq_size').value,pos:$('#cq_pos').value}}
+function cqForm(){const m=document.querySelector('input[name=cq_mode]:checked').value;$('#cq_wifi').hidden=m!=='wifi';$('#cq_link').hidden=m!=='link';cqPreview()}
+function cqPreview(){const v=cqVal(),t=cornerQRText(v),w=[];
+ $('#cq_prev').innerHTML=t?qrSVG(t):'Nhập tên wifi để tạo mã';
+ if(v.mode==='wifi'&&v.ssid&&v.sec!=='nopass'&&!v.pass)w.push('Chưa nhập mật khẩu wifi.');
+ if(v.mode==='wifi'&&v.pass&&v.sec==='WPA'&&v.pass.length<8)w.push('Mật khẩu WPA phải từ 8 ký tự – kiểm tra lại.');
+ if(!v.on&&t)w.push('Đang TẮT – tích "Hiện mã QR ở góc màn hình" để Tivi hiển thị.');
+ $('#cq_warn').textContent=w.join(' ')}
+function fillQR(){const q=DB.settings.corner_qr;if(q===undefined){$('#qr_card').querySelectorAll('input,select,button').forEach(x=>x.disabled=true);$('#cq_warn').textContent='⚠️ Admin cần chạy file supabase/supabase_phase5.sql để dùng tính năng này.';return}
+ const v=q||{};$('#cq_on').checked=!!v.on;document.querySelector(`input[name=cq_mode][value=${v.mode==='link'?'link':'wifi'}]`).checked=true;
+ $('#cq_ssid').value=v.ssid||'';$('#cq_pass').value=v.pass||'';$('#cq_sec').value=v.sec||'WPA';$('#cq_hidden').checked=!!v.hidden;$('#cq_showssid').checked=v.show_ssid!==false;
+ $('#cq_text').value=v.text||'';$('#cq_label').value=v.label||'';$('#cq_size').value=v.size||'m';$('#cq_pos').value=v.pos||'r';cqForm()}
+async function saveQR(){const v=cqVal();
+ if(v.on&&!cornerQRText(v))return alert(v.mode==='wifi'?'Nhập tên wifi (SSID).':'Nhập nội dung mã QR.');
+ if(v.mode==='link'){delete v.ssid;delete v.pass;delete v.sec;delete v.hidden;delete v.show_ssid}else delete v.text;
+ try{DB.settings=await q(sb.from('sig_settings').update({corner_qr:v,updated_at:new Date().toISOString()}).eq('id',1).select().single());bump();alert(v.on?'Đã lưu ✔ Các Tivi sẽ hiện mã QR trong vài giây.':'Đã lưu ✔ (mã QR đang tắt)')}
+ catch(e){fail(e,'Không lưu được')}}
+function previewQR(){const v=Object.assign(cqVal(),{on:true});if(!cornerQRText(v))return alert('Nhập tên wifi hoặc nội dung trước.');
+ const r=DB.slides.find(x=>x.enabled&&x.status==='approved');startPreview([r?rowToSlide(r):{type:'text',title:'Màn hình mẫu',extra:'Mã QR hiện ở góc dưới'}],Object.assign(baseSettings(),{lay:'full',corner_qr:v}))}
 
 /* ================= CHÉP THƯ VIỆN TỪ APP CŨ ================= */
 async function migrateMedia(){

@@ -2,7 +2,7 @@
    ARON Signage v2 – Lõi dùng chung cho player.html và admin.html
    (hiển thị slide, lịch ICS, thời tiết, KPI, âm thanh khẩn cấp, bộ nhớ offline)
    ===================================================================== */
-const APP_VERSION='2.3.0';
+const APP_VERSION='2.4.0';
 // Thông tin kết nối lấy từ config.js (mỗi môi trường/project Supabase một file riêng)
 const CFG=window.SIGNAGE_CONFIG||{};
 const SB_URL=String(CFG.url||'').replace(/\/+$/,'');
@@ -344,7 +344,7 @@ const PL={dirty:false,slides:[],settings:{},alert:null,preview:null,running:fals
 function playerMarkup(){return`<div id="player" hidden><img id="player-logo" hidden alt=""><div id="emg" hidden></div><div id="ident" hidden></div>
  <div id="snd_hint" hidden>🔇 Chạm hoặc bấm vào màn hình 1 lần để bật âm thanh</div><div id="preview_tag" hidden>👁 XEM TRƯỚC · bấm Esc để thoát</div>
  <div id="net_tag" hidden>📴 Mất mạng – đang phát dữ liệu đã lưu</div>
- <div id="pg"></div><div id="body"><div id="stage"></div><div id="side"></div></div>
+ <div id="cqr" class="cqr" hidden></div><div id="pg"></div><div id="body"><div id="stage"></div><div id="side"></div></div>
  <div id="bar"><span id="co"></span><span id="tk"><span></span></span><span id="clock"></span></div></div>`}
 
 function activeSlides(list){const n=NOW(),hm=n.toTimeString().slice(0,5),d=today(),off=!navigator.onLine;
@@ -366,8 +366,23 @@ function setStage(h,el){
  const d=document.createElement('div');d.className='layer';d.innerHTML=h;st.appendChild(d);
  setTimeout(()=>olds.forEach(o=>o.remove()),900);
 }
+// Mã QR góc màn hình (wifi khách hoặc link) – chuỗi chuẩn WIFI:T:WPA;S:tên;P:mật khẩu;;
+function cornerQRText(q){
+ if(!q)return'';if(q.mode==='link')return String(q.text||'').trim();
+ const e=v=>String(v||'').replace(/([\\;,:"])/g,'\\$1'),sec=['WPA','WEP','nopass'].includes(q.sec)?q.sec:'WPA';
+ if(!q.ssid)return'';return`WIFI:T:${sec};S:${e(q.ssid)};${sec!=='nopass'?`P:${e(q.pass)};`:''}${q.hidden?'H:true;':''};`;
+}
+function renderCornerQR(){
+ const el=$('#cqr');if(!el)return;const q=PL.settings&&PL.settings.corner_qr,txt=q&&q.on?cornerQRText(q):'';
+ if(!txt){el.hidden=true;el._k='';return}
+ const k=JSON.stringify(q);if(el._k!==k){el._k=k;
+  el.innerHTML=`<div class="cqr-box">${qrSVG(txt)}</div><div class="cqr-t">${esc(q.label||(q.mode==='link'?'Quét mã':'📶 Quét để vào Wifi'))}</div>${q.mode!=='link'&&q.show_ssid!==false&&q.ssid?`<div class="cqr-s">${esc(q.ssid)}</div>`:''}`;
+  el.className='cqr '+(['s','m','l'].includes(q.size)?q.size:'m')+(q.pos==='l'?' left':'')}
+ el.hidden=false;
+}
 let lastTicker=null;
 function applyChrome(){
+ renderCornerQR();
  const st=PL.settings||{};
  $('#co').textContent=st.company||'';
  if(lastTicker!==(st.ticker||'')){lastTicker=st.ticker||'';$('#tk span').textContent=lastTicker}
