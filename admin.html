@@ -4,6 +4,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#074659">
 <title>ARON Signage – Quản trị</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ARON Signage">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/400.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/500.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/be-vietnam-pro@5/600.css">
@@ -60,6 +67,52 @@
  .chip{background:#fff;border-color:#e2eaec}.chip.on{background:#074659;border-color:#074659}
  .scr-now{background:#f2f6f6}
  #toast div.ok{background:#1a9e5a}
+ /* ===== Điện thoại (giống app CLB ARON): thanh điều hướng dưới, hộp thoại trượt từ dưới lên ===== */
+ .mnav,.em-mini,#fab_add,.mv{display:none}
+ #more_dlg .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+ #more_dlg .tiles button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:16px;background:var(--bg);border:1px solid var(--bd);font-size:12.5px;font-weight:600;color:var(--fg);min-height:84px;justify-content:center;text-align:center}
+ #more_dlg .tiles button b{font-size:24px;line-height:1}
+ #more_dlg .tiles button.red{background:#fde8e8;border-color:#f5c2c2;color:#b42318}
+ @media (pointer:coarse){.mv{display:inline-flex;gap:4px}.it .dh{display:none}}
+ @media (max-width:760px){
+  body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+  .wrap{padding:calc(10px + env(safe-area-inset-top)) 12px 0;gap:12px}
+  .tabs{display:none}
+  .mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;padding:0 12px calc(10px + env(safe-area-inset-bottom));justify-content:center;pointer-events:none}
+  .mnav-in{pointer-events:auto;width:min(560px,100%);display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px;background:var(--card);border:1px solid var(--bd);border-radius:24px;box-shadow:0 14px 34px -12px rgba(7,70,89,.45)}
+  .mnav button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px 3px;color:#6b8088;min-height:0;box-shadow:none}
+  .mnav .ic{width:52px;height:30px;border-radius:15px;display:grid;place-items:center;font-size:17px;transition:background .18s}
+  .mnav .l{font-size:11px;font-weight:600}
+  .mnav button.on{color:var(--fg)}.mnav button.on .ic{background:#074659}.mnav button.on .l{font-weight:800}
+  .hero{padding:12px 14px;border-radius:20px;gap:10px}
+  .hero h1{font-size:17px;line-height:1.25}
+  .hero .ribbon{font-size:10px}
+  .hero-logo{height:44px;padding:4px 8px}.hero-logo img{max-height:34px;max-width:110px}
+  .hero-act{display:none}
+  .hero-r{width:100%}.hero-top{justify-content:space-between;flex-wrap:nowrap;width:100%}
+  .uchip{max-width:58vw;overflow:hidden}#user_badge{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;max-width:48vw;vertical-align:middle}
+  #cloud_badge{max-width:30vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .em-mini{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:4px 12px;border-radius:10px;background:rgba(176,0,32,.9);border:1px solid rgba(255,255,255,.35);color:#fff;font-weight:700}
+  dialog.card{width:100%;max-width:100%;margin:auto 0 0;border:0;border-radius:24px 24px 0 0;max-height:88vh;overflow:auto;padding:10px 16px calc(20px + env(safe-area-inset-bottom))}
+  dialog.card::before{content:'';display:block;width:42px;height:4px;border-radius:4px;background:var(--bd);margin:0 auto 12px}
+  input,select,textarea{font-size:16px}
+  .card{padding:14px;border-radius:20px}
+  .stats{grid-template-columns:1fr 1fr;gap:8px}.stat{padding:10px 12px}.stat b{font-size:22px}
+  .sgrid{grid-template-columns:minmax(0,1fr)}
+  .row{flex-wrap:wrap;min-width:0}.row>*{min-width:0}.pane,.wrap>*{min-width:0;max-width:100%}
+  #group_chips{flex:1 1 100%}
+  .scr .row{gap:6px}
+  .toolbar select,.toolbar input{flex:1 1 100%}
+  .it{flex-wrap:wrap;gap:6px}
+  #cal{overflow-x:auto;-webkit-overflow-scrolling:touch}.cal{min-width:720px}
+  #pane_report .grid{grid-template-columns:1fr}
+  table.tb{display:block;overflow-x:auto;white-space:nowrap}
+  .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}.chip{flex:0 0 auto}
+  #toast{left:12px;right:12px;bottom:calc(100px + env(safe-area-inset-bottom))}
+  #fab_add{display:flex;position:fixed;right:18px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:59;width:56px;height:56px;border-radius:18px;align-items:center;justify-content:center;font-size:28px;color:#fff;background:linear-gradient(135deg,#ff9130,#f57107);border:0;box-shadow:0 10px 24px rgba(245,113,7,.45)}
+  #fab_add[hidden]{display:none}
+  .au{flex-wrap:wrap}.au .w{flex:1 1 100%}
+ }
  .code-in{font-size:30px;letter-spacing:10px;text-align:center;font-weight:800}
  table.tb{width:100%;border-collapse:collapse;font-size:13px}table.tb th,table.tb td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}table.tb th{color:var(--mu);font-weight:600;font-size:12px}table.tb td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
  .bars{display:flex;align-items:flex-end;gap:4px;height:140px;padding:8px 0;border-bottom:1px solid var(--bd);overflow-x:auto}
@@ -86,6 +139,7 @@
 <div class="wrap" id="main_wrap" hidden>
  <header class="hero"><div class="hero-l"><div class="hero-logo" id="hero_logo_box" hidden><img id="hero_logo" alt="Logo" onerror="this.closest('.hero-logo').hidden=true"></div><div><h1>Quản lý màn hình nội bộ</h1><span class="ribbon">ARON SIGNAGE v2</span></div></div><div class="hero-r">
   <div class="hero-top">
+   <button type="button" id="m_em" class="em-mini" onclick="openEmergency()" title="Phát thông báo khẩn cấp">🚨</button>
    <span id="cloud_badge" class="tag" style="font-size:12px;cursor:pointer" onclick="loadAll()" title="Bấm để tải lại">☁️ Đang kết nối...</span>
    <div class="umenu" id="umenu">
     <button type="button" class="uchip" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false"><span id="user_badge"></span><span class="caret">▾</span></button>
@@ -118,6 +172,14 @@
   <button data-tab="audit" id="tab_audit">📝 Nhật ký</button>
   <button data-tab="settings" id="tab_settings">⚙️ Cài đặt chung</button>
  </nav>
+ <nav class="mnav" id="mnav" aria-label="Điều hướng"><div class="mnav-in">
+  <button type="button" data-go="screens" class="on"><span class="ic">📺</span><span class="l">Màn hình</span></button>
+  <button type="button" data-go="content"><span class="ic">🗂</span><span class="l">Nội dung</span></button>
+  <button type="button" data-go="cal"><span class="ic">📅</span><span class="l">Lịch phát</span></button>
+  <button type="button" data-go="report"><span class="ic">📊</span><span class="l">Báo cáo</span></button>
+  <button type="button" data-go="more"><span class="ic">☰</span><span class="l">Thêm</span></button>
+ </div></nav>
+ <button type="button" id="fab_add" hidden onclick="reset();$('#add_card').scrollIntoView({behavior:'smooth',block:'start'})" title="Thêm nội dung">＋</button>
 
  <!-- ============ MÀN HÌNH ============ -->
  <section class="pane" id="pane_screens">
@@ -290,6 +352,12 @@
 </div>
 
 <!-- ============ HỘP THOẠI ============ -->
+<dialog id="more_dlg" class="card">
+ <div class="dh-row"><h2>Thêm</h2><button class="sm" onclick="$('#more_dlg').close()">✕</button></div>
+ <div class="tiles" id="more_tiles"></div>
+ <p class="hint" id="more_ver" style="text-align:center;margin:14px 0 0"></p>
+</dialog>
+
 <dialog id="pair_dlg" class="card">
  <div class="dh-row"><h2>➕ Ghép nối Tivi mới</h2><button class="sm" onclick="$('#pair_dlg').close()">✕</button></div>
  <p class="hint">Trên Tivi, mở <b id="pair_url"></b> → màn hình hiện mã 6 số. Nhập mã đó vào đây.</p>
@@ -423,7 +491,7 @@ function enterAs(u){
 }
 function applyPermissions(){
  const sh=(s,v)=>{const e=$(s);if(e)e.style.display=v?'':'none'};
- sh('#btn_users',can('users'));sh('#btn_em',can('alert'));sh('#btn_em2',can('alert'));sh('#btn_pair',can('screens'));sh('#btn_groups',can('screens'));
+ sh('#btn_users',can('users'));sh('#btn_em',can('alert'));sh('#m_em',can('alert'));sh('#btn_em2',can('alert'));sh('#btn_pair',can('screens'));sh('#btn_groups',can('screens'));
  sh('#btn_media',can('create'));sh('#tab_audit',can('edit'));sh('#host_card',can('settings'));sh('#mig_card',can('settings')&&!!(CFG.old&&CFG.old.url&&CFG.old.key));sh('#tab_settings',can('settings'));sh('#add_card',can('create'));
 }
 function toggleUserMenu(e){e.stopPropagation();const l=$('#umenu_list');l.hidden=!l.hidden}
@@ -468,6 +536,7 @@ function renderAll(){refreshPick();renderStats();renderGroupChips();renderScreen
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-tab]');if(!b)return;
  $$('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
  $$('.pane').forEach(p=>p.hidden=p.id!=='pane_'+b.dataset.tab);lsSet('sig_tab',b.dataset.tab);
+ syncNav(b.dataset.tab);$('#fab_add').hidden=b.dataset.tab!=='content'||!can('create');
  if(b.dataset.tab==='report')loadReport();if(b.dataset.tab==='audit')loadAudit();if(b.dataset.tab==='cal')renderCal()});
 (()=>{const t=lsGet('sig_tab');const b=t&&$(`#tabs button[data-tab="${t}"]`);if(b&&!['settings','audit','report'].includes(t))b.click()})();
 
@@ -622,7 +691,7 @@ function renderSlides(){
   const sched=[d.from||d.to?`📆 ${d.from||'…'} → ${d.to||'…'}`:'',d.t1||d.t2?`🕘 ${d.t1||'…'}–${d.t2||'…'}`:'',d.days&&d.days.length<7?'📅 '+d.days.map(x=>['CN','T2','T3','T4','T5','T6','T7'][x]).join(','):''].filter(Boolean).join(' ');
   const ztags=(d.priority?'<span class="tag" style="background:#fff3cd;color:#8a6d00;border-color:#f0d36b">⚡ Ưu tiên</span>':'')+(d.zone==='side'?'<span class="tag">◨ Vùng phụ</span>':'');
   return`<div class="it ${r.enabled&&st==='approved'?'':'off'}" data-id="${r.id}" ${dragOK?'draggable="true"':''} title="${esc(info)}" style="flex-wrap:wrap">
-   ${dragOK?'<span class="dh" title="Kéo để sắp xếp">⋮⋮</span>':''}<input type="checkbox" style="width:auto" ${r.enabled?'checked':''} ${canE?'':'disabled'} onchange="toggleSlide('${r.id}',this.checked)" title="Bật/tắt">
+   ${dragOK?'<span class="dh" title="Kéo để sắp xếp">⋮⋮</span>':''}${dragOK?`<span class="mv"><button class="sm" onclick="mvSlide('${r.id}',-1)" title="Lên">↑</button><button class="sm" onclick="mvSlide('${r.id}',1)" title="Xuống">↓</button></span>`:''}<input type="checkbox" style="width:auto" ${r.enabled?'checked':''} ${canE?'':'disabled'} onchange="toggleSlide('${r.id}',this.checked)" title="Bật/tắt">
    <span class="tag">${esc(LBL[r.type]||r.type)}</span>${stTag}<span class="t">${esc(d.title||d.wname||d.wurl||d.vurl||LBL[r.type]||'')}</span>
    <button class="sm" onclick="previewRow('${r.id}')" title="Xem trước">👁</button>${apr}
    ${canEditThis?`<button class="sm" onclick="ed('${r.id}')">Sửa</button>`:''}${can('create')?`<button class="sm" onclick="dup('${r.id}')" title="Nhân bản">⧉</button>`:''}${can('delete')||(mine&&st==='pending')?`<button class="sm" onclick="delSlide('${r.id}')">Xóa</button>`:''}
@@ -1091,6 +1160,42 @@ async function migrateMedia(){
  }catch(e){log('❌ '+(e.message||e))}
  finally{btn.disabled=false}
 }
+
+
+/* ================= ĐIỆN THOẠI: điều hướng dưới, bảng "Thêm", cài app ================= */
+const goTab=t=>{const b=$(`#tabs button[data-tab="${t}"]`);if(b){b.click();scrollTo({top:0,behavior:'smooth'})}};
+function syncNav(t){$$('#mnav [data-go]').forEach(x=>x.classList.toggle('on',x.dataset.go===t||(x.dataset.go==='more'&&['alerts','audit','settings'].includes(t))))}
+$('#mnav').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;if(b.dataset.go==='more')openMore();else goTab(b.dataset.go)});
+let deferredInstall=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e});
+addEventListener('appinstalled',()=>{deferredInstall=null;toast('✅ Đã cài ARON Signage lên máy')});
+function installApp(){
+ $('#more_dlg').close();
+ if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.finally(()=>deferredInstall=null);return}
+ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ alert(ios?'Cài lên iPhone / iPad:\n1. Mở trang này bằng Safari\n2. Bấm nút Chia sẻ (ô vuông có mũi tên ↑)\n3. Chọn "Thêm vào MH chính" → Thêm'
+  :'Cài lên điện thoại Android:\n1. Mở trang này bằng Chrome\n2. Bấm menu ⋮ (góc trên phải)\n3. Chọn "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính"');
+}
+function openMore(){
+ const T=[];const add=(ic,l,fn,cls)=>T.push(`<button type="button" class="${cls||''}" onclick="$('#more_dlg').close();${fn}"><b>${ic}</b>${l}</button>`);
+ if(can('alert'))add('🚨','Phát khẩn cấp','openEmergency()','red');
+ if(can('screens'))add('➕','Ghép nối Tivi','openPair()');
+ if(can('create'))add('📚','Thư viện','openMedia(\'all\')');
+ add('▶️','Xem trước','previewScope()');
+ add('🚨','Lịch sử khẩn cấp',"goTab('alerts')");
+ if(can('edit'))add('📝','Nhật ký',"goTab('audit')");
+ if(can('settings'))add('⚙️','Cài đặt chung',"goTab('settings')");
+ if(can('users'))add('👥','Người dùng','openUserModal()');
+ add('🔑','Đổi mật khẩu','openChangePassModal()');
+ if(!isStandalone())T.push(`<button type="button" onclick="installApp()"><b>📲</b>Cài app lên máy</button>`);
+ add('🚪','Đăng xuất','logout()');
+ $('#more_tiles').innerHTML=T.join('');$('#more_ver').textContent=`ARON Signage v${APP_VERSION}${isStandalone()?' · đang chạy dạng app':''}`;
+ $('#more_dlg').showModal();
+}
+// Điện thoại cảm ứng không kéo-thả được → dùng nút ↑ ↓
+async function mvSlide(id,d){const L=DB.slides,i=L.findIndex(x=>x.id===id),j=i+d;if(i<0||j<0||j>=L.length)return;await reorder(id,L[j].id)}
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 /* ================= KHỞI ĐỘNG ================= */
 (()=>{const lg=lsGet('sig_logo');if(lg&&safeImg(lg)){$('#login_logo').src=lg;$('#login_lb').hidden=false;$('#login_word').hidden=true}})();

@@ -2,7 +2,7 @@
    ARON Signage v2 – Lõi dùng chung cho player.html và admin.html
    (hiển thị slide, lịch ICS, thời tiết, KPI, âm thanh khẩn cấp, bộ nhớ offline)
    ===================================================================== */
-const APP_VERSION='2.4.0';
+const APP_VERSION='2.5.0';
 // Thông tin kết nối lấy từ config.js (mỗi môi trường/project Supabase một file riêng)
 const CFG=window.SIGNAGE_CONFIG||{};
 const SB_URL=String(CFG.url||'').replace(/\/+$/,'');

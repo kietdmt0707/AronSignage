@@ -1,0 +1,18 @@
+{
+  "id": "aron-signage-admin",
+  "name": "ARON Signage – Quản lý màn hình",
+  "short_name": "ARON Signage",
+  "description": "Quản lý Tivi, nội dung trình chiếu, thông báo khẩn cấp và báo cáo phát của ARON.",
+  "start_url": "./admin.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#074659",
+  "theme_color": "#074659",
+  "lang": "vi",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
