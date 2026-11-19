@@ -405,10 +405,28 @@
 
 <dialog id="change_pass_modal" class="card" style="max-width:380px">
  <div class="dh-row"><h2>🔑 Đổi mật khẩu</h2><button class="sm" onclick="$('#change_pass_modal').close()">✕</button></div>
+ <p id="cp_note" class="hint" hidden style="color:#b42318;font-weight:600;margin-top:0">⚠️ Admin vừa đặt lại mật khẩu của bạn. Hãy nhập mật khẩu tạm vào ô "Mật khẩu hiện tại" rồi đặt mật khẩu mới của riêng bạn.</p>
  <label>Mật khẩu hiện tại</label><input id="old_pw" type="password" autocomplete="current-password">
  <label>Mật khẩu mới</label><input id="new_pw" type="password" autocomplete="new-password">
  <label>Xác nhận mật khẩu mới</label><input id="confirm_pw" type="password" autocomplete="new-password">
  <button type="button" class="p" style="margin-top:16px;width:100%" onclick="changeMyPassword()">Lưu mật khẩu mới</button>
+</dialog>
+<dialog id="reset_pw_modal" class="card" style="max-width:420px">
+ <div class="dh-row"><h2>🔑 Đặt lại mật khẩu</h2><button class="sm" onclick="$('#reset_pw_modal').close()">✕</button></div>
+ <div id="rp_form">
+  <p class="hint" style="margin-top:0">Tài khoản: <b id="rp_email"></b></p>
+  <label>Mật khẩu mới (tạm thời)</label>
+  <div class="row" style="flex-wrap:nowrap;gap:6px"><input id="rp_pw" type="text" autocomplete="off" spellcheck="false" style="flex:1;font-family:ui-monospace,Menlo,monospace"><button type="button" onclick="genPw()" title="Tạo mật khẩu ngẫu nhiên">🎲 Tạo mới</button></div>
+  <label style="display:flex;gap:8px;align-items:center;margin-top:10px;cursor:pointer"><input type="checkbox" id="rp_force" style="width:auto" checked> Bắt đổi mật khẩu ở lần đăng nhập tới</label>
+  <button type="button" class="p" id="rp_btn" style="margin-top:14px;width:100%" onclick="doResetPw()">Đặt lại mật khẩu</button>
+ </div>
+ <div id="rp_result" hidden>
+  <p style="margin-top:0">✅ Đã đặt lại mật khẩu cho <b id="rp_out_email"></b></p>
+  <div id="rp_out_pw" style="font-family:ui-monospace,Menlo,monospace;font-size:20px;font-weight:700;padding:10px 14px;border:1px dashed var(--bd);border-radius:10px;text-align:center;letter-spacing:1px;user-select:all"></div>
+  <p class="hint" id="rp_out_note"></p>
+  <p class="hint">Gửi mật khẩu này <b>riêng</b> cho nhân viên (tin nhắn cá nhân), không gửi vào nhóm chung. Mật khẩu sẽ không hiện lại sau khi đóng cửa sổ này.</p>
+  <div class="row" style="gap:8px"><button type="button" class="p" id="rp_copy" onclick="copyResetPw()" style="flex:1">📋 Copy</button><button type="button" onclick="$('#reset_pw_modal').close()" style="flex:1">Xong</button></div>
+ </div>
 </dialog>
 
 <dialog id="user_modal" class="card" style="max-width:560px">
@@ -468,7 +486,7 @@ async function loadProfile(session){
  if(!session||!session.user)return null;
  const {data,error}=await sb.from('profiles').select('role,email,is_owner').eq('id',session.user.id).maybeSingle();
  if(error){console.warn(error);return null}
- return {id:session.user.id,u:(data&&data.email)||session.user.email,role:data&&PERMS[data.role]?data.role:'none',owner:!!(data&&data.is_owner)};
+ return {id:session.user.id,u:(data&&data.email)||session.user.email,role:data&&PERMS[data.role]?data.role:'none',owner:!!(data&&data.is_owner),mustChange:!!(session.user.user_metadata&&session.user.user_metadata.must_change_pw)};
 }
 async function login(){
  $('#l_err').style.display='none';
@@ -488,6 +506,7 @@ function enterAs(u){
  $('#user_badge').textContent=`👤 ${u.u} · ${u.owner?'OWNER':u.role.toUpperCase()}`;
  if(u.role==='none'){alert('Tài khoản chưa được cấp quyền. Hãy nhờ Admin phân quyền cho bạn.')}
  applyPermissions();loadAll();
+ if(u.mustChange)setTimeout(openForcedChange,300);
 }
 function applyPermissions(){
  const sh=(s,v)=>{const e=$(s);if(e)e.style.display=v?'':'none'};
@@ -900,14 +919,45 @@ async function changePin(){
 }
 
 /* ================= NGƯỜI DÙNG ================= */
-function openChangePassModal(){['old_pw','new_pw','confirm_pw'].forEach(i=>$('#'+i).value='');$('#change_pass_modal').showModal()}
+function openChangePassModal(){['old_pw','new_pw','confirm_pw'].forEach(i=>$('#'+i).value='');if($('#cp_note'))$('#cp_note').hidden=true;$('#change_pass_modal').showModal()}
 async function changeMyPassword(){
  const o=$('#old_pw').value,n=$('#new_pw').value,c=$('#confirm_pw').value;
  if(!o||!n)return alert('Vui lòng nhập đầy đủ thông tin!');if(n!==c)return alert('Xác nhận mật khẩu mới không khớp!');if(n.length<8)return alert('Mật khẩu mới phải từ 8 ký tự trở lên!');
  const re=await sb.auth.signInWithPassword({email:me.u,password:o});if(re.error)return alert('Mật khẩu hiện tại không chính xác!');
- const {error}=await sb.auth.updateUser({password:n});if(error)return alert('Không đổi được mật khẩu: '+error.message);
+ const {error}=await sb.auth.updateUser({password:n,data:{must_change_pw:false}});if(error)return alert('Không đổi được mật khẩu: '+error.message);
  $('#change_pass_modal').close();alert('Đổi mật khẩu thành công!');
 }
+/* ================= ĐẶT LẠI MẬT KHẨU THÀNH VIÊN (v2.6 – Admin / Owner) =================
+   Gọi Edge Function "admin-users": server tự kiểm tra quyền, trình duyệt không giữ khóa quản trị. */
+var resetTarget=null;
+function canResetPw(p){const u=me;return !!(u&&u.role==='admin'&&p&&p.id!==u.id&&(!p.is_owner||u.owner))}
+function genPw(){const cs='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%';let s='';
+ do{const a=new Uint32Array(12);crypto.getRandomValues(a);s='';for(const x of a)s+=cs[x%cs.length]}while(!/[A-Z]/.test(s)||!/[a-z]/.test(s)||!/\d/.test(s));
+ $('#rp_pw').value=s;return s}
+function openResetPw(i){const p=profilesCache[i];if(!canResetPw(p))return alert('Bạn không có quyền đặt lại mật khẩu cho tài khoản này.');
+ resetTarget=p;$('#rp_email').textContent=p.email;genPw();$('#rp_force').checked=true;$('#rp_result').hidden=true;$('#rp_form').hidden=false;$('#reset_pw_modal').showModal()}
+async function doResetPw(){
+ const p=resetTarget;if(!p)return;const pw=$('#rp_pw').value;
+ if(pw.length<8)return alert('Mật khẩu mới phải từ 8 ký tự trở lên!');
+ if(!confirm(`Đặt lại mật khẩu cho "${p.email}"?`))return;
+ const btn=$('#rp_btn');btn.disabled=true;btn.textContent='Đang xử lý...';
+ try{
+  const {data,error}=await sb.functions.invoke('admin-users',{body:{action:'reset_password',user_id:p.id,new_password:pw,require_change:$('#rp_force').checked}});
+  if(error){let m=error.message||String(error);
+   try{const r=error.context;if(r&&r.status===404)m='Chưa triển khai Edge Function "admin-users" trên Supabase.';else if(r&&typeof r.json==='function'){const j=await r.json();if(j&&j.error)m=j.error}}catch(_){}
+   if(/Failed to send|Failed to fetch|NetworkError/i.test(m))m+=' – kiểm tra đã deploy Edge Function "admin-users" và tắt "Verify JWT" chưa.';
+   throw new Error(m)}
+  $('#rp_form').hidden=true;$('#rp_result').hidden=false;
+  $('#rp_out_email').textContent=(data&&data.email)||p.email;$('#rp_out_pw').textContent=pw;
+  $('#rp_out_note').textContent=data&&data.revoked?'Các thiết bị đang đăng nhập sẵn của tài khoản này đã bị đăng xuất.':'Lưu ý: thiết bị nào đang đăng nhập sẵn tài khoản này vẫn giữ phiên cho tới khi đăng xuất.';
+ }catch(e){alert('Không đặt lại được mật khẩu: '+(e.message||e))}
+ finally{btn.disabled=false;btn.textContent='Đặt lại mật khẩu'}
+}
+function copyResetPw(){const t=`Tài khoản: ${$('#rp_out_email').textContent}\nMật khẩu tạm: ${$('#rp_out_pw').textContent}\nVui lòng đổi mật khẩu sau khi đăng nhập.`;
+ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{$('#rp_copy').textContent='✔ Đã copy'},()=>prompt('Copy nội dung sau:',t))}
+document.addEventListener('DOMContentLoaded',()=>{const d=$('#reset_pw_modal');if(d)d.addEventListener('close',()=>{$('#rp_pw').value='';$('#rp_out_pw').textContent='';$('#rp_copy').textContent='📋 Copy';resetTarget=null})});
+function openForcedChange(){openChangePassModal();const n=$('#cp_note');if(n)n.hidden=false}
+
 let profilesCache=[];
 const ROLE_OPTS=[['admin','👑 Admin'],['editor','✏️ Editor'],['creator','➕ Creator'],['none','⛔ Chưa cấp quyền']];
 async function openUserModal(){if(!can('users'))return;$('#user_modal').showModal();await renderUserList()}
@@ -917,7 +967,7 @@ async function renderUserList(){
  if(error){box.innerHTML='<span class="hint">Không tải được: '+esc(error.message)+'</span>';return}
  profilesCache=data||[];
  box.innerHTML=profilesCache.map((p,i)=>{const self=p.id===me.id,locked=self||p.is_owner;
-  return`<div class="it" style="justify-content:space-between"><div class="t"><b>${esc(p.email)}</b>${p.is_owner?' <span class="tag" style="background:#b8860b;color:#fff;border-color:#b8860b">⭐ OWNER</span>':''}${self?' <span class="tag">BẠN</span>':''}</div><select style="width:auto" ${locked?'disabled':''} onchange="setRole(${i},this.value)">${ROLE_OPTS.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('')}</select>${locked?'':`<button class="sm" style="color:#ff4d4f" onclick="deleteUser(${i})">Gỡ</button>`}</div>`}).join('')||'<span class="hint">Chưa có user</span>';
+  return`<div class="it" style="justify-content:space-between"><div class="t"><b>${esc(p.email)}</b>${p.is_owner?' <span class="tag" style="background:#b8860b;color:#fff;border-color:#b8860b">⭐ OWNER</span>':''}${self?' <span class="tag">BẠN</span>':''}</div><select style="width:auto" ${locked?'disabled':''} onchange="setRole(${i},this.value)">${ROLE_OPTS.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('')}</select>${canResetPw(p)?`<button class="sm" title="Đặt lại mật khẩu" onclick="openResetPw(${i})">🔑 Đặt lại MK</button>`:''}${locked?'':`<button class="sm" style="color:#ff4d4f" onclick="deleteUser(${i})">Gỡ</button>`}</div>`}).join('')||'<span class="hint">Chưa có user</span>';
 }
 async function setRole(i,role){const p=profilesCache[i];if(!p)return;const {data,error}=await sb.from('profiles').update({role}).eq('id',p.id).select('id');if(error||!data||!data.length)alert('Không đổi được quyền'+(error?': '+error.message:''));renderUserList()}
 async function addUser(){
@@ -1072,7 +1122,7 @@ function exportReport(){
 /* ================= NHẬT KÝ THAO TÁC ================= */
 let AU=[];
 const TBL={slides:'Nội dung',screens:'Màn hình',screen_groups:'Nhóm',alerts:'Khẩn cấp',sig_settings:'Cài đặt chung',profiles:'Người dùng'};
-const ACT={INSERT:'Thêm',UPDATE:'Sửa',DELETE:'Xóa'};
+const ACT={INSERT:'Thêm',UPDATE:'Sửa',DELETE:'Xóa',RESET_PASSWORD:'Đặt lại mật khẩu'};
 async function loadAudit(){
  if(!can('edit'))return;$('#au_list').innerHTML='<p class="hint">Đang tải...</p>';
  try{let qq=sb.from('audit_log').select('*');const t=$('#au_tbl').value;if(t)qq=qq.eq('table_name',t);AU=await q(qq.order('id',{ascending:false}).limit(300))||[];renderAudit()}
